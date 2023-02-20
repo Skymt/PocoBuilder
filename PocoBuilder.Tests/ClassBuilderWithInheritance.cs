@@ -49,10 +49,8 @@ namespace PocoBuilder.Tests
             Assert.IsInstanceOfType(parent.Model, typeof(IModel));
             Assert.IsInstanceOfType((IModel)parent, typeof(IModel));
 
-            parent.Set(m => m.ImmutableId, 12345);
+            parent.Set(m => m.ImmutableId, 12345).Set(m => m.MutableName, "A name");
             Assert.IsNotNull(parent.Model.ImmutableId);
-
-            parent.Set(m => m.MutableName, "A name");
             Assert.IsNotNull(parent.Model.MutableName);
         }
 

@@ -23,7 +23,8 @@ namespace PocoBuilder
             return properties.ToDictionary(getKey, getField);
 
             string getKey(PropertyInfo p) => p.Name;
-            FieldInfo getField(PropertyInfo p) => pocoType.GetField("__" + p.Name, BindingFlags.Instance | BindingFlags.NonPublic) 
+            FieldInfo getField(PropertyInfo p) => 
+                pocoType.GetField("__" + p.Name, BindingFlags.Instance | BindingFlags.NonPublic) 
                 ?? throw new Exception();
         }
         static void ImplementProperty(PropertyInfo propertyInfo, TypeBuilder type)
