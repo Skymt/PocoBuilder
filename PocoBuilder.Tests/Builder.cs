@@ -19,9 +19,11 @@
 
         public interface ITest1 : IModel, IPeripheral1, IPeripheral2 { }
         [TestMethod]
-        public void BasicTest1()
+        public void Test1_MutableProperties()
         {
-            var instance = PocoBuilder.CreateInstance<ITest1>(out var fields);
+            Assert.IsTrue(PocoBuilder.VerifyPocoInterface<ITest1>());
+
+            var instance = PocoBuilder.CreatePocoInstance<ITest1>(out var _);
             Assert.IsNotNull(instance);
             Assert.IsInstanceOfType(instance, typeof(ITest1));
 
@@ -30,24 +32,20 @@
 
             instance.Data1 = "Arbitrary information about the model";
             Assert.IsNotNull(instance.Data1);
-
-            fields[nameof(instance.Id)].SetValue(instance, 12345);
-            Assert.AreEqual(12345, instance.Id);
-
-            fields[nameof(instance.Data2)].SetValue(instance, "Another piece of arbitrary information");
-            Assert.IsNotNull(instance.Data2);
         }
 
         public interface IUnrelated1 { string This { get; } }
         public interface IUnrelated2 { string That { get; } }
-        public interface ITest2<T> : IModel, IUnrelated1, IUnrelated2 
+        public interface ITest2<T> : IModel, IUnrelated1, IUnrelated2
         {
             T Value { get; }
         }
         [TestMethod]
-        public void BasicTest2()
+        public void Test2_ImmutableProperties()
         {
-            var instance = PocoBuilder.CreateInstance<ITest2<int>>(out var fields);
+            Assert.IsTrue(PocoBuilder.VerifyPocoInterface<ITest2<int>>());
+
+            var instance = PocoBuilder.CreatePocoInstance<ITest2<int>>(out var fields);
             Assert.IsNotNull(instance);
             Assert.IsInstanceOfType(instance, typeof(ITest2<int>));
             Assert.IsInstanceOfType(instance, typeof(IUnrelated1));
@@ -64,6 +62,16 @@
             Assert.IsTrue(instance.Value == 6);
             Assert.IsNotNull(instance.This);
             Assert.IsNotNull(instance.That);
+        }
+
+        public interface IUnrelated3 { string That { get; } }
+        public interface IConflictingProperties : IUnrelated1, IUnrelated2, IUnrelated3 { }
+        public interface IMethod { void DoSomething(); }
+        [TestMethod]
+        public void Test3_InvalidInterfaceDeclarations()
+        {
+            Assert.IsFalse(PocoBuilder.VerifyPocoInterface<IConflictingProperties>());
+            Assert.IsFalse(PocoBuilder.VerifyPocoInterface<IMethod>());
         }
     }
 }

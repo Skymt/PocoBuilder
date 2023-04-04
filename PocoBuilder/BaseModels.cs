@@ -31,7 +31,7 @@ namespace PocoBuilder
             ISetter<TInterface> IEditable<TInterface>.Edit() => new Setter(Model, BackingFields);
             void IModelBase.SetBackingFields(IDictionary<string, FieldInfo> fields) => backingFields = fields;
 
-            
+
             IDictionary<string, FieldInfo>? backingFields;
             protected IDictionary<string, FieldInfo> BackingFields => backingFields ?? throw new Exception();
 
@@ -40,15 +40,15 @@ namespace PocoBuilder
             public ModelFor<TInterface> Clone(Action<ISetter<TInterface>>? setter = null) => Clone<ModelFor<TInterface>>(setter);
             public TParent Clone<TParent>(Action<ISetter<TInterface>>? setter = null)
             {
-                (var instance, var parent) = CreateInstance<TInterface, TParent>(out var fields);
-                foreach(var key in BackingFields.Keys)
+                (var instance, var parent) = CreatePocoInstance<TInterface, TParent>(out var fields);
+                foreach (var key in BackingFields.Keys)
                     fields[key].SetValue(instance, BackingFields[key].GetValue(Model));
                 setter?.Invoke(CreateSetter());
                 return parent;
             }
             public static ModelFor<TInterface> Default() => CreateInstance<ModelFor<TInterface>>();
             public static TParent CreateInstance<TParent>() where TParent : ModelFor<TInterface>
-                => CreateInstance<TInterface, TParent>(out var _).parent;
+                => CreatePocoInstance<TInterface, TParent>(out var _).parent;
         }
         public abstract class ModelFor<TInterface, TParent> : ModelFor<TInterface>
             where TParent : ModelFor<TInterface, TParent>
@@ -59,7 +59,7 @@ namespace PocoBuilder
         }
     }
 
-    public class CompositeTypeNotDeterminedException : Exception { }
+    public class UnresolvableCompositeTypeException : Exception { }
     public readonly struct CompositeType<T1, T2>
     {
         readonly int type; readonly object? entity;
@@ -71,7 +71,7 @@ namespace PocoBuilder
             {
                 case 1: a1((T1?)entity); break;
                 case 2: a2((T2?)entity); break;
-                default: throw new CompositeTypeNotDeterminedException();
+                default: throw new UnresolvableCompositeTypeException();
             }
         }
         public static implicit operator T1?(CompositeType<T1, T2> value) => (T1?)value.entity;
@@ -87,12 +87,12 @@ namespace PocoBuilder
         public CompositeType(T3? value) { entity = value; type = 3; }
         public void Resolve(Action<T1?> a1, Action<T2?> a2, Action<T3?> a3)
         {
-            switch(type)
+            switch (type)
             {
                 case 1: a1((T1?)entity); break;
                 case 2: a2((T2?)entity); break;
                 case 3: a3((T3?)entity); break;
-                default: throw new CompositeTypeNotDeterminedException();
+                default: throw new UnresolvableCompositeTypeException();
             }
         }
         public static implicit operator T1?(CompositeType<T1, T2, T3> value) => (T1?)value.entity;

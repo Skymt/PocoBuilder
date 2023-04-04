@@ -5,7 +5,8 @@
     {
         CompositeType<string, Exception> result;
 
-        [TestMethod] public void Test1_SuccessType()
+        [TestMethod]
+        public void Test1_SuccessType()
         {
             result = "All went well";
             result.Resolve(
@@ -14,7 +15,8 @@
             );
         }
 
-        [TestMethod]public void Test2_ErrorType()
+        [TestMethod]
+        public void Test2_ErrorType()
         {
             result = new NullReferenceException("Oh no");
             result.Resolve(
@@ -23,26 +25,28 @@
             );
         }
 
-        [TestMethod]public void Test3_ThrowWhenUnresolved()
+        [TestMethod]
+        public void Test3_ThrowWhenUnresolved()
         {
             result = default;
-            Assert.ThrowsException<CompositeTypeNotDeterminedException>(() => result.Resolve(
+            Assert.ThrowsException<UnresolvableCompositeTypeException>(() => result.Resolve(
                 success => Assert.Fail(),
                 error => Assert.Fail()
             ));
         }
 
-        [TestMethod] public void Test4_TripleCompositeType()
+        [TestMethod]
+        public void Test4_TripleCompositeType()
         {
-            CompositeType<bool, int, string> composite = default;
             static void checkBoolean(bool v) => Assert.IsInstanceOfType(v, typeof(bool));
-            static void failBoolean(bool v) => Assert.Fail();
             static void checkInt(int v) => Assert.IsInstanceOfType(v, typeof(int));
-            static void failInt(int v) => Assert.Fail();
             static void checkString(string? v) => Assert.IsInstanceOfType(v, typeof(string));
+            static void failBoolean(bool v) => Assert.Fail();
+            static void failInt(int v) => Assert.Fail();
             static void failString(string? v) => Assert.Fail();
 
-            Assert.ThrowsException<CompositeTypeNotDeterminedException>(() 
+            CompositeType<bool, int, string> composite = default;
+            Assert.ThrowsException<UnresolvableCompositeTypeException>(()
                 => composite.Resolve(failBoolean, failInt, failString));
 
             composite = true;
@@ -53,7 +57,6 @@
 
             composite = "This is a string";
             composite.Resolve(failBoolean, failInt, checkString);
-            
         }
     }
 }

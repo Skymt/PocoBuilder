@@ -11,10 +11,11 @@ namespace PocoBuilder.Tests
             string MutableName { get; set; }
             string Description { get; }
         }
-        
-        [TestMethod] public void Test1_DefaultParent()
+
+        [TestMethod]
+        public void Test1_DefaultParent()
         {
-            (var instance, var parent) = CreateInstance<IModel, ModelFor<IModel>>(out var backingFields);
+            (var instance, var parent) = CreatePocoInstance<IModel, ModelFor<IModel>>(out var backingFields);
             Assert.IsInstanceOfType(instance, typeof(IModel));
             Assert.IsInstanceOfType(parent, typeof(ModelFor<IModel>));
 
@@ -26,7 +27,8 @@ namespace PocoBuilder.Tests
             Assert.IsNotNull(parent.Model.MutableName);
             Assert.IsNotNull(parent.Model.Description);
         }
-        [TestMethod] public void Test2_EditableDefaultParent()
+        [TestMethod]
+        public void Test2_EditableDefaultParent()
         {
             var poco = ModelFor<IModel>.Default();
             (poco as IEditable<IModel>).Edit()
@@ -38,7 +40,8 @@ namespace PocoBuilder.Tests
             Assert.IsNotNull(poco.Model.MutableName);
             Assert.IsNotNull(poco.Model.Description);
         }
-        [TestMethod] public void Test3_ClonedDefaultParent()
+        [TestMethod]
+        public void Test3_ClonedDefaultParent()
         {
             var poco = ModelFor<IModel>.Default();
             (poco as IEditable<IModel>).Edit()
@@ -58,7 +61,7 @@ namespace PocoBuilder.Tests
             Assert.AreNotEqual(poco.Model.Description, clone.Model.Description);
             Assert.IsNotNull(clone.Model.Description);
         }
-        
+
 
         public abstract class CustomParent
         {
@@ -67,9 +70,10 @@ namespace PocoBuilder.Tests
             public bool HasId => MyModel.ImmutableId > 0;
             public bool HasName => !string.IsNullOrEmpty(MyModel.MutableName);
         }
-        [TestMethod] public void Test4_CustomParent1()
+        [TestMethod]
+        public void Test4_CustomParent1()
         {
-            var (model, parent) = CreateInstance<IModel, CustomParent>(out var backingFields);
+            var (model, parent) = CreatePocoInstance<IModel, CustomParent>(out var backingFields);
             Assert.IsInstanceOfType(model, typeof(IModel));
             Assert.IsInstanceOfType(parent, typeof(CustomParent));
             Assert.AreEqual(model, parent);
@@ -83,7 +87,8 @@ namespace PocoBuilder.Tests
             backingFields[nameof(model.ImmutableId)].SetValue(model, 12345);
             Assert.IsTrue(parent.HasId);
         }
-        [TestMethod] public void Test5_CustomParent2()
+        [TestMethod]
+        public void Test5_CustomParent2()
         {
             var template = ModelFor<IModel>.Default();
             (template as IEditable<IModel>).Edit().Set(m => m.ImmutableId, 12345);
@@ -105,15 +110,16 @@ namespace PocoBuilder.Tests
                 instance.CreateSetter().Set(m => m.ImmutableId, id);
                 return instance;
             }
-            public string? Data 
-            { 
-                get => Model.Data1; 
-                set => BackingFields[nameof(IPeripheral1.Data1)].SetValue(this, value); 
+            public string? Data
+            {
+                get => Model.Data1;
+                set => BackingFields[nameof(IPeripheral1.Data1)].SetValue(this, value);
             }
             public void SetAlternateData(string data)
                 => BackingFields[nameof(IPeripheral2.Data2)].SetValue(this, data);
         }
-        [TestMethod] public void Test6_ComplexParent()
+        [TestMethod]
+        public void Test6_ComplexParent()
         {
             var parent = ComplexParent.CreateInstance(id: 12345);
             Assert.IsNotNull(parent.Model);
