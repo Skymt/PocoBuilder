@@ -3,7 +3,7 @@ using static PocoBuilder.PocoBuilder;
 namespace PocoBuilder.Tests
 {
     [TestClass]
-    public class PocoBuilderWithParents
+    public class BuilderBaseModels
     {
         public interface IModel
         {
@@ -60,7 +60,7 @@ namespace PocoBuilder.Tests
         }
         
 
-        public abstract class ModelParent
+        public abstract class CustomParent
         {
             public IModel MyModel { get => (IModel)this; }
             public int Id { get => MyModel.ImmutableId; }
@@ -69,9 +69,9 @@ namespace PocoBuilder.Tests
         }
         [TestMethod] public void Test4_CustomParent1()
         {
-            var (model, parent) = CreateInstance<IModel, ModelParent>(out var backingFields);
+            var (model, parent) = CreateInstance<IModel, CustomParent>(out var backingFields);
             Assert.IsInstanceOfType(model, typeof(IModel));
-            Assert.IsInstanceOfType(parent, typeof(ModelParent));
+            Assert.IsInstanceOfType(parent, typeof(CustomParent));
             Assert.AreEqual(model, parent);
             Assert.IsNotNull(parent.MyModel);
 
@@ -88,8 +88,8 @@ namespace PocoBuilder.Tests
             var template = ModelFor<IModel>.Default();
             (template as IEditable<IModel>).Edit().Set(m => m.ImmutableId, 12345);
 
-            var newModel = template.Clone<ModelParent>();
-            Assert.IsInstanceOfType(newModel, typeof(ModelParent));
+            var newModel = template.Clone<CustomParent>();
+            Assert.IsInstanceOfType(newModel, typeof(CustomParent));
             Assert.AreEqual(template.Model.ImmutableId, newModel.Id);
         }
 
@@ -102,7 +102,7 @@ namespace PocoBuilder.Tests
             public static ComplexParent CreateInstance(int id)
             {
                 var instance = CreateInstance();
-                instance.BackingFields[nameof(IModel.ImmutableId)].SetValue(instance.Model, id);
+                instance.CreateSetter().Set(m => m.ImmutableId, id);
                 return instance;
             }
             public string? Data 

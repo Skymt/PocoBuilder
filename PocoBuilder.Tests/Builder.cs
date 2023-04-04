@@ -1,7 +1,7 @@
 ﻿namespace PocoBuilder.Tests
 {
     [TestClass]
-    public class ClassBuilderBasics
+    public class Builder
     {
         public interface IModel
         {
