@@ -33,13 +33,13 @@
         {
             // To build (or fetch from memory cache) the poco type.   
             var interfaceAsClassType = PocoBuilder.GetTypeFor<ITest1>();
-            
-            // The new type has both an empty constructor
+
+            // The new type has both an parameter-less constructor
             var emptyInstance = Activator.CreateInstance(interfaceAsClassType) as ITest1;
             Assert.IsNotNull(emptyInstance);
             Assert.IsNull(emptyInstance.Data1);
 
-            // and a constructor for assigning values, to support serialization.
+            // and a constructor for assigning values, to support immutability.
             var filledInstance = Activator.CreateInstance(interfaceAsClassType, 1, "Name", "Data1", Guid.NewGuid()) as ITest1;
             Assert.IsNotNull(filledInstance);
             Assert.IsNotNull(filledInstance.Data1);
@@ -75,7 +75,7 @@
         // They may not have conflicting properties.
         public interface IUnrelated1 { string Data1 { get; } }
         public interface IConflictingProperties : IPeripheral1, IUnrelated1 { }
-        
+
         // Nor can they contain methods, even with default implementations.
         // While a type will be created, the method will not be carried over!
         public interface IContainsMethod { void DoSomething(); }
@@ -101,15 +101,15 @@
         {
             // No need to implement the interface properties
             public ITest1 Model => (ITest1)this;
-            
+
             // Public parameter-less constructors are called when the constructed type is instantiated.
             public bool DefaultContructorCalled { get; } = true;
-            
+
             // Custom contstructors are never called by the PocoBuilder
             public bool CustomConstructorCalled { get; } = false;
 
             public GenericBase() { DefaultContructorCalled = true; }
-            public GenericBase(ITest1 _) {  CustomConstructorCalled = true; }
+            public GenericBase(ITest1 _) { CustomConstructorCalled = true; }
             public bool NameIsSet => !string.IsNullOrEmpty(Model.Name);
         }
 

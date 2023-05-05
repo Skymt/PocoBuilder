@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -18,7 +19,7 @@ namespace PocoBuilder
                 {
                     var memberName = expression.Member.Name;
                     if (value != null && values.ContainsKey(memberName))
-                        values[expression.Member.Name] = value;
+                        values[memberName] = value;
                 }
                 return this;
             }
@@ -71,12 +72,14 @@ namespace PocoBuilder
                 parameters = setter;
             }
 
-            instance = Activator.CreateInstance(type, parameters) ?? throw new InvalidOperationException();
+            instance = Activator.CreateInstance(type, parameters)!;
             return instance;
         }
         
         public static bool VerifyPocoInterface<TInterface>()
         {
+            // POCO classes can only contain properties and fields.
+            // Fields are not valid in an interface, thus a POCO interface may only contain properties!
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface) return false;
 
@@ -90,17 +93,25 @@ namespace PocoBuilder
             var allMethods = declaredMethods.Union(inheritedMethods).ToArray();
             if (allMethods.Where(m => (m.Attributes & MethodAttributes.SpecialName) == 0).Any()) return false;
 
+            // I'd check for fields, but since I already checked that TInterface actually is
+            // an interface, it seems superflous.
+
             return true;
         }
+        public static IReadOnlyDictionary<string, Type> GetProperties<TInterface>()
+            => Properties<TInterface>().ToDictionary(p => p.Name, p => p.PropertyType);
 
         static Type ImplementClass(TypeBuilder type, Type interfaceType, ConstructorInfo? parentConstructor = null)
         {
             type.AddInterfaceImplementation(interfaceType);
             var properties = Properties(interfaceType);
+            var ctor = type.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, properties.Select(p => p.PropertyType).ToArray());
+            var ctorIL = ctor.GetILGenerator();
 
-            var ctorIL = type.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, properties.Select(p => p.PropertyType).ToArray()).GetILGenerator();
             foreach ((var property, var index) in properties.Select((p, i) => (p, i + 1)))
             {
+                var backingField = ImplementProperty(property, type);
+                ctor.DefineParameter(index, ParameterAttributes.None, property.Name.ToLower());
                 ctorIL.Emit(OpCodes.Ldarg_0);
                 switch (index)
                 {
@@ -109,7 +120,7 @@ namespace PocoBuilder
                     case 3: ctorIL.Emit(OpCodes.Ldarg_3); break;
                     default: ctorIL.Emit(OpCodes.Ldarg_S, index); break;
                 }
-                ctorIL.Emit(OpCodes.Stfld, ImplementProperty(property, type));
+                ctorIL.Emit(OpCodes.Stfld, backingField);
             }
             if (parentConstructor != null)
             {
@@ -118,23 +129,25 @@ namespace PocoBuilder
                 ctorIL.Emit(OpCodes.Call, parentConstructor);
             }
             ctorIL.Emit(OpCodes.Ret);
-            return type.CreateType() ?? throw new InvalidOperationException();
+            return type.CreateType()!;
         }
+
+        static readonly Type IsExternalInitType = typeof(System.Runtime.CompilerServices.IsExternalInit);
         static FieldBuilder ImplementProperty(PropertyInfo propertyInfo, TypeBuilder type)
         {
-            FieldBuilder field = type.DefineField("__" + propertyInfo.Name, propertyInfo.PropertyType, FieldAttributes.Private);
-            PropertyBuilder property = type.DefineProperty(propertyInfo.Name, PropertyAttributes.None, propertyInfo.PropertyType, null);
-
-            MethodAttributes attributes =
-                MethodAttributes.Public |
-                MethodAttributes.HideBySig |
-                MethodAttributes.SpecialName |
-                MethodAttributes.Virtual;
-
             var interfaceGetter = propertyInfo.GetGetMethod();
+            var interfaceSetter = propertyInfo.GetSetMethod();
+
+            var fieldAttributes = FieldAttributes.Private;
+            if (interfaceSetter?.ReturnParameter.GetRequiredCustomModifiers().Any(IsExternalInitType.Equals) ?? true) 
+                fieldAttributes |= FieldAttributes.InitOnly;
+
+            FieldBuilder field = type.DefineField("__" + propertyInfo.Name, propertyInfo.PropertyType, fieldAttributes);
+            PropertyBuilder property = type.DefineProperty(propertyInfo.Name, PropertyAttributes.None, propertyInfo.PropertyType, null);
+            
             if (interfaceGetter != null)
             {
-                MethodBuilder getter = type.DefineMethod("get_" + propertyInfo.Name, attributes, propertyInfo.PropertyType, Type.EmptyTypes);
+                var getter = cloneMethod(interfaceGetter);
                 ILGenerator getIL = getter.GetILGenerator();
                 getIL.Emit(OpCodes.Ldarg_0);
                 getIL.Emit(OpCodes.Ldfld, field);
@@ -142,11 +155,10 @@ namespace PocoBuilder
                 property.SetGetMethod(getter);
                 type.DefineMethodOverride(getter, interfaceGetter);
             }
-
-            var interfaceSetter = propertyInfo.GetSetMethod();
+            
             if (interfaceSetter != null)
             {
-                MethodBuilder setter = type.DefineMethod("set_" + propertyInfo.Name, attributes, null, new Type[] { propertyInfo.PropertyType });
+                var setter = cloneMethod(interfaceSetter);
                 ILGenerator setIL = setter.GetILGenerator();
                 setIL.Emit(OpCodes.Ldarg_0);
                 setIL.Emit(OpCodes.Ldarg_1);
@@ -155,7 +167,17 @@ namespace PocoBuilder
                 property.SetSetMethod(setter);
                 type.DefineMethodOverride(setter, interfaceSetter);
             }
+
             return field;
+            MethodBuilder cloneMethod(MethodInfo method)
+            {
+                var newMethod = type.DefineMethod(method.Name, method.Attributes & ~MethodAttributes.Abstract);
+                newMethod.SetSignature(method.ReturnType, 
+                    method.ReturnParameter.GetRequiredCustomModifiers(),
+                    method.ReturnParameter.GetOptionalCustomModifiers(), 
+                    method.GetParameters().Select(p => p.ParameterType).ToArray(), null, null);
+                return newMethod;
+            }
         }
     }
 }
