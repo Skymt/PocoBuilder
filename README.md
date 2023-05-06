@@ -24,7 +24,7 @@ PocoBuilder can then help create a class from such an interface, instantiate and
 
 or to deserialize
 
-    string json = "{\"Id\":2,\"Name\":\"Fancy Product}";
+    string json = "{\"Id\":2,\"Name\":\"Fancy Product\"}";
     Type targetType = PocoBuilder.GetTypeFor<IListProduct>();
     var instance = JsonSerializer.Deserialize(json, targetType) as IListProduct;
 
