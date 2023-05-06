@@ -9,10 +9,11 @@
         // of actually implementing all those interfaces.
 
         // Consider the following interfaces as a model description
-        public interface IBaseModel
+        public interface IBaseModel 
         {
-            int Id { get; }
-            string Name { get; set; }
+            string MutableProperty { get; set; }
+            DateTime? ImmutableProperty { get; init; } // Only writable during object activation
+            int ReadonlyProperty { get; } // Only writable from constructor
         }
         public interface IPeripheral1 : IBaseModel
         {
@@ -20,7 +21,7 @@
         }
         public interface IPeripheral2 : IBaseModel
         {
-            Guid? Data2 { get; }
+            Guid? Data2 { get; init; }
         }
 
         // They can then contextually be combined to represent a contract.
@@ -37,20 +38,35 @@
             // The new type has both an parameter-less constructor
             var emptyInstance = Activator.CreateInstance(interfaceAsClassType) as ITest1;
             Assert.IsNotNull(emptyInstance);
-            Assert.IsNull(emptyInstance.Data1);
 
-            // and a constructor for assigning values, to support immutability.
-            var filledInstance = Activator.CreateInstance(interfaceAsClassType, 1, "Name", "Data1", Guid.NewGuid()) as ITest1;
+            // and a constructor for assigning values during activation, to support immutability.
+            var constructorParameters = interfaceAsClassType.GetConstructors().Select(c => c.GetParameters()).First(c => c.Length > 0);
+            var initializationArray = new object[constructorParameters.Length];
+            for(int i = 0; i < constructorParameters.Length; i++)
+            {
+                initializationArray[i] = constructorParameters[i].Name switch
+                {
+                    nameof(ITest1.MutableProperty) => "Mutable property",
+                    nameof(ITest1.ImmutableProperty) => DateTime.Now,
+                    nameof(ITest1.ReadonlyProperty) => 5,
+                    nameof(ITest1.Data1) => "Peripheral data",
+                    nameof(ITest1.Data2) => Guid.NewGuid(),
+                    _ => throw new NotImplementedException()
+                };
+            }
+
+            var filledInstance = Activator.CreateInstance(interfaceAsClassType, initializationArray) as ITest1;
             Assert.IsNotNull(filledInstance);
-            Assert.IsNotNull(filledInstance.Data1);
+            Assert.IsNotNull(filledInstance.ImmutableProperty);
+            Assert.AreEqual(5, filledInstance.ReadonlyProperty);
 
             // It also creates all the properties, with getters and setters as defined by the interface.
-            emptyInstance.Data1 = "This property just mutated...";
-            Assert.IsNotNull(emptyInstance.Data1);
+            emptyInstance.MutableProperty = "This property just mutated...";
+            Assert.AreEqual("This property just mutated...", emptyInstance.MutableProperty);
 
             // Immutable properties can of course only be read.
-            var data2 = filledInstance.Data2;
-            Assert.IsNotNull(data2);
+            var created = filledInstance.ImmutableProperty;
+            Assert.IsTrue(created < DateTime.Now);
         }
 
         [TestMethod]
@@ -59,16 +75,36 @@
             // Using Activator to pass the initial values as an array of objects is typically a bit unsafe.
             // PocoBuilder therefore offers this alternative, to get a type-safe activation.
             var filledInstance = PocoBuilder.CreateInstanceOf<ITest1>(init => init
-                .Set(i => i.Id, 1)
-                .Set(i => i.Name, "The name of the thingy")
+                .Set(i => i.MutableProperty, "The name of the thingy")
+                .Set(i => i.ImmutableProperty, DateTime.Now)
+                .Set(i => i.ReadonlyProperty, 1)
                 .Set(i => i.Data1, "Something else about the thingy")
                 .Set(i => i.Data2, Guid.NewGuid())
             );
             // This technique can also be used to map foreign properties,
             // or expanded to take into account several data sources.
             Assert.IsNotNull(filledInstance);
-            Assert.AreEqual(1, filledInstance.Id);
+            Assert.AreEqual(1, filledInstance.ReadonlyProperty);
             Assert.IsNotNull(filledInstance.Data2);
+
+            var factory = new PocoFactory<ITest1>();
+            factory
+                .Set(i => i.MutableProperty, "The name of the thingy")
+                .Set(i => i.ImmutableProperty, DateTime.Now)
+                .Set(i => i.ReadonlyProperty, 1)
+                .Set(i => i.Data1, "Words are costly")
+                .Set(i => i.Data2, Guid.NewGuid());
+
+            var instance1 = factory.CreateInstance();
+            Assert.AreEqual("Words are costly", instance1.Data1);
+
+            dynamic shenanigans = factory;
+            shenanigans.Data1 = "Words are cheap";
+            var instance2 = factory.CreateInstance();
+
+            Assert.AreNotEqual(instance1.Data1, instance2.Data1);
+            Assert.AreEqual(instance1.Data2, instance2.Data2);
+
         }
 
         // The interfaces the poco builder likes has some limitations.
@@ -110,7 +146,7 @@
 
             public GenericBase() { DefaultContructorCalled = true; }
             public GenericBase(ITest1 _) { CustomConstructorCalled = true; }
-            public bool NameIsSet => !string.IsNullOrEmpty(Model.Name);
+            public bool NameIsSet => !string.IsNullOrEmpty(Model.MutableProperty);
         }
 
         [TestMethod]
@@ -126,7 +162,7 @@
             Assert.IsFalse(asParent.CustomConstructorCalled);
 
             Assert.IsFalse(asParent.NameIsSet);
-            asInterface.Name = "This is a name";
+            asInterface.MutableProperty = "This is a name";
             Assert.IsTrue(asParent.NameIsSet);
         }
     }

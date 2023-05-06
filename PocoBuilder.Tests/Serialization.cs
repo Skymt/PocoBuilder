@@ -47,15 +47,13 @@ namespace PocoBuilder.Tests
             var targetType = PocoBuilder.GetTypeFor<IListProduct>();
             var deserialized = JsonSerializer.Deserialize(json, targetType) as IListProduct;
             Assert.IsNotNull(deserialized);
-            Assert.IsTrue(deserialized.Id > 0);
-            Assert.IsTrue(deserialized.Price > 0);
+            Assert.IsTrue(deserialized.Id == 2);
+            Assert.IsTrue(deserialized.Price == 99.95m);
             Assert.IsNotNull(deserialized.DisplayName);
-
             // Note: The JsonSerializer does not use the constructor to populate the data
             // beacause PocoBuilder does not decorate it with the JsonConstructorAttribute.
 
             // Instead it uses the init-only setters of the properties.
-            
         }
 
         public interface IArticle 
