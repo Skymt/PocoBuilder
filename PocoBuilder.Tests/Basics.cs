@@ -17,7 +17,7 @@
 
             var constructors = type.GetConstructors();
             Assert.AreEqual(2, constructors.Length);
-            
+
             var parameterizedConstructor = constructors.First(c => c.GetParameters().Length > 0);
             var parameters = parameterizedConstructor.GetParameters();
             Assert.AreEqual(properties.Length, parameters.Length);
@@ -26,28 +26,28 @@
             // Hint: The order of the properties, matches the signature
             // of the parameterized constructor.
 
-            var expectedParameterOrder = new[] { "Id", "Name" };
+            var expectedParameterOrder = new[] { "ArticleId", "Name" };
             Assert.AreEqual(expectedParameterOrder.Length, parameters.Length);
             Assert.AreEqual(expectedParameterOrder[0], parameters[0].Name);
             Assert.AreEqual(expectedParameterOrder[1], parameters[1].Name);
         }
 
         [TestMethod]
-        public void Test2_PropertyOrder() 
+        public void Test2_PropertyOrder()
         {
             var type = PocoBuilder.GetTypeFor<IDetailProduct>();
             var properties = type.GetProperties();
 
-            var expectedProperties = new[] { "CustomProperty", "Id", "Name", "Description" };
+            var expectedProperties = new[] { "CustomProperty", "ArticleId", "Name", "Description" };
 
-            foreach(var (expected, actual) in expectedProperties.Zip(properties))
+            foreach (var (expected, actual) in expectedProperties.Zip(properties))
             {
                 Assert.AreEqual(expected, actual.Name);
             }
         }
 
         [TestMethod]
-        public void Test3_TypeInstantiation() 
+        public void Test3_TypeInstantiation()
         {
             var type = PocoBuilder.GetTypeFor<IDetailProduct>();
             var instance = Activator.CreateInstance(type) as IDetailProduct;
@@ -64,7 +64,7 @@
             var type = PocoBuilder.GetTypeFor<IDetailProduct>();
             var properties = type.GetProperties();
             var values = new object[properties.Length];
-            for(int i = 0; i < properties.Length; i++)
+            for (int i = 0; i < properties.Length; i++)
             {
                 values[i] = properties[i].Name switch
                 {

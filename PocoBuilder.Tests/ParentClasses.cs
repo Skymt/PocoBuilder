@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static PocoBuilder.Tests.Builder;
-
-namespace PocoBuilder.Tests
+﻿namespace PocoBuilder.Tests
 {
     [TestClass]
     public class ParentClasses

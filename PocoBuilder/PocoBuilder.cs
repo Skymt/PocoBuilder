@@ -77,7 +77,7 @@ namespace PocoBuilder
             instance = Activator.CreateInstance(type, parameters)!;
             return instance;
         }
-        
+
         public static bool VerifyPocoInterface<TInterface>()
         {
             // POCO classes can only contain properties and fields.
@@ -140,12 +140,12 @@ namespace PocoBuilder
             var interfaceSetter = propertyInfo.GetSetMethod();
 
             var fieldAttributes = FieldAttributes.Private;
-            if (interfaceSetter?.ReturnParameter.GetRequiredCustomModifiers().Any(IsExternalInitType.Equals) ?? true) 
+            if (interfaceSetter?.ReturnParameter.GetRequiredCustomModifiers().Any(IsExternalInitType.Equals) ?? true)
                 fieldAttributes |= FieldAttributes.InitOnly;
 
             FieldBuilder field = type.DefineField("__" + propertyInfo.Name, propertyInfo.PropertyType, fieldAttributes);
             PropertyBuilder property = type.DefineProperty(propertyInfo.Name, PropertyAttributes.None, propertyInfo.PropertyType, null);
-            
+
             if (interfaceGetter != null)
             {
                 var getter = cloneMethod(interfaceGetter);
@@ -156,7 +156,7 @@ namespace PocoBuilder
                 property.SetGetMethod(getter);
                 type.DefineMethodOverride(getter, interfaceGetter);
             }
-            
+
             if (interfaceSetter != null)
             {
                 var setter = cloneMethod(interfaceSetter);
@@ -173,9 +173,9 @@ namespace PocoBuilder
             MethodBuilder cloneMethod(MethodInfo method)
             {
                 var newMethod = type.DefineMethod(method.Name, method.Attributes & ~MethodAttributes.Abstract);
-                newMethod.SetSignature(method.ReturnType, 
+                newMethod.SetSignature(method.ReturnType,
                     method.ReturnParameter.GetRequiredCustomModifiers(),
-                    method.ReturnParameter.GetOptionalCustomModifiers(), 
+                    method.ReturnParameter.GetOptionalCustomModifiers(),
                     method.GetParameters().Select(p => p.ParameterType).ToArray(), null, null);
                 return newMethod;
             }
@@ -199,18 +199,18 @@ namespace PocoBuilder
             }
             return this;
         }
-        public object? this[string name] 
-        { 
-            get => values[name]; 
+        public object? this[string name]
+        {
+            get => values[name];
             set
             {
-                if(values.ContainsKey(name))
+                if (values.ContainsKey(name))
                     values[name] = value;
-            } 
+            }
         }
         public override bool TrySetMember(SetMemberBinder binder, object? value)
         {
-            if(values.ContainsKey(binder.Name))
+            if (values.ContainsKey(binder.Name))
             {
                 values[binder.Name] = value;
                 return true;
