@@ -17,11 +17,7 @@ namespace PocoBuilder
             public ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
             {
                 if (property.Body is MemberExpression expression)
-                {
-                    var memberName = expression.Member.Name;
-                    if (values.ContainsKey(memberName))
-                        values[memberName] = value;
-                }
+                    values[expression.Member.Name] = value;
                 return this;
             }
             public static implicit operator object?[]?(Setter<TInterface> setter) => setter.values.Values.ToArray();
@@ -98,7 +94,7 @@ namespace PocoBuilder
             if (allMethods.Where(m => (m.Attributes & MethodAttributes.SpecialName) == 0).Any()) return false;
 
             // I'd check for fields, but since I already checked that TInterface actually is
-            // an interface, it seems superflous.
+            // an interface, it seems superfluous.
             return true;
         }
 
@@ -200,11 +196,7 @@ namespace PocoBuilder
         public PocoBuilder.ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
         {
             if (property.Body is MemberExpression expression)
-            {
-                var memberName = expression.Member.Name;
-                if (values.ContainsKey(memberName))
-                    values[memberName] = value;
-            }
+                values[expression.Member.Name] = value;
             return this;
         }
         public object? this[string name]
