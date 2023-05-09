@@ -13,7 +13,7 @@ namespace PocoBuilder
         readonly struct Setter<TInterface> : ISetter<TInterface>
         {
             readonly Dictionary<string, object?> values;
-            public Setter() => values = Properties<TInterface>().ToDictionary(m => m.Name, m => (object?)null);
+            public Setter() => values = GetProperties<TInterface>().ToDictionary(p => p.Name, p => (object?)null);
             public ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
             {
                 if (property.Body is MemberExpression expression)
@@ -30,15 +30,6 @@ namespace PocoBuilder
         readonly static Type IsExternalInitType = typeof(IsExternalInit);
         readonly static AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(new("DynamicTypes"), AssemblyBuilderAccess.Run);
         readonly static ModuleBuilder module = assembly.DefineDynamicModule("DynamicModule");
-
-        readonly static ConcurrentDictionary<Type, HashSet<PropertyInfo>> propertyCache = new();
-        static HashSet<PropertyInfo> Properties<TInterface>() => Properties(typeof(TInterface));
-        static HashSet<PropertyInfo> Properties(Type interfaceType) => propertyCache.GetOrAdd(interfaceType, interfaceType =>
-        {
-            var declaredProperties = interfaceType.GetProperties();
-            var inheritedProperties = interfaceType.GetInterfaces().SelectMany(i => i.GetProperties());
-            return new HashSet<PropertyInfo>(declaredProperties.Union(inheritedProperties));
-        });
 
         public static Type GetTypeFor<TInterface>() => GetTypeFor<TInterface, object>();
         public static Type GetTypeFor<TInterface, TParent>()
@@ -78,6 +69,9 @@ namespace PocoBuilder
             return instance;
         }
 
+        public static IEnumerable<(string Name, Type Type)> GetProperties<TInterface>() =>
+            GetTypeFor<TInterface>().GetConstructors().Select(c => c.GetParameters())
+            .First(p => p.Any()).Select(p => (p.Name!, p.ParameterType));
         public static bool VerifyPocoInterface<TInterface>()
         {
             // POCO classes can only contain properties and fields.
@@ -101,13 +95,13 @@ namespace PocoBuilder
             // an interface, it seems superflous.
             return true;
         }
-        public static IReadOnlyDictionary<string, Type> GetProperties<TInterface>()
-            => Properties<TInterface>().ToDictionary(p => p.Name, p => p.PropertyType);
 
         static Type ImplementClass(TypeBuilder type, Type interfaceType, ConstructorInfo? parentConstructor = null)
         {
             type.AddInterfaceImplementation(interfaceType);
-            var properties = Properties(interfaceType);
+            var declaredProperties = interfaceType.GetProperties();
+            var inheritedProperties = interfaceType.GetInterfaces().SelectMany(i => i.GetProperties());
+            var properties = new HashSet<PropertyInfo>(declaredProperties.Union(inheritedProperties));
             var ctor = type.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, properties.Select(p => p.PropertyType).ToArray());
             var ctorIL = ctor.GetILGenerator();
 
@@ -185,7 +179,7 @@ namespace PocoBuilder
     public class PocoFactory<TInterface> : DynamicObject, PocoBuilder.ISetter<TInterface>
     {
         readonly Dictionary<string, object?> values = PocoBuilder.GetProperties<TInterface>()
-            .ToDictionary(kvp => kvp.Key, kvp => (object?)null);
+                .ToDictionary(p => p.Name, p => (object?)null);
         readonly Type objectType = PocoBuilder.GetTypeFor<TInterface>();
         public TInterface CreateInstance() => (TInterface)Activator.CreateInstance(objectType, values.Values.ToArray())!;
 
