@@ -21,7 +21,7 @@ namespace PocoBuilder.Tests
                 .Set(i => i.Category, "Logical Category")
             );
             var json = JsonSerializer.Serialize<object>(detailedProduct);
-            //{"Name":"Fancy Product","Id":2,"Price":99.95,"Category":"Logical Category","Description":"Eloquent Description"}
+            //{"Name":"Fancy Product","ArticleId":2,"Price":99.95,"Category":"Logical Category","Description":"Eloquent Description"}
             // Note: Serializer gets confused by interfaces not having their getters implemented,
             // so it needs to get an indication that it actually is an object that it is supposed
             // to serialize.
@@ -36,7 +36,7 @@ namespace PocoBuilder.Tests
             );
             json = JsonSerializer.Serialize<object>(listProduct);
             // Note: The order of the properties matches the order of the interface declarations.
-            //{"Id":2,"Name":"Fancy Product","Price":99.95}
+            //{"ArticleId":2,"Name":"Fancy Product","Price":99.95}
             Assert.IsFalse(string.IsNullOrWhiteSpace(json));
             Assert.AreNotEqual("{}", json);
         }
@@ -50,7 +50,7 @@ namespace PocoBuilder.Tests
                 .Set(i => i.Price, 99.95m)
                 .Set(i => i.SampleReadOnlyProperty, "This is a value!")
             ));
-            //{"SampleReadOnlyProperty":"This is a value!","Id":2,"Name":"Fancy Product","Price":99.95}
+            //{"SampleReadOnlyProperty":"This is a value!","ArticleId":2,"Name":"Fancy Product","Price":99.95}
 
             var targetType = PocoBuilder.GetTypeFor<ICustomArticle>();
             var deserialized = JsonSerializer.Deserialize(json, targetType) as ICustomArticle;
