@@ -70,8 +70,14 @@ namespace PocoBuilder
         }
 
         public static IEnumerable<(string Name, Type Type)> GetProperties<TInterface>() =>
-            GetTypeFor<TInterface>().GetConstructors().Select(c => c.GetParameters())
+            // When reflecting on interface only, there is no need to worry about inherited properties
+            GetTypeFor<TInterface>().GetProperties().Select(p => (p.Name, p.PropertyType));
+        public static IEnumerable<(string Name, Type Type)> GetProperties<TInterface, TParent>() =>
+            // If a base class is present, use the constructor to ensure only interface properties
+            // are returned.
+            GetTypeFor<TInterface, TParent>().GetConstructors().Select(c => c.GetParameters())
             .First(p => p.Any()).Select(p => (p.Name!, p.ParameterType));
+
         public static bool VerifyPocoInterface<TInterface>()
         {
             // POCO classes can only contain properties and fields.
@@ -178,10 +184,18 @@ namespace PocoBuilder
 
     public class PocoFactory<TInterface> : DynamicObject, PocoBuilder.ISetter<TInterface>
     {
-        readonly Dictionary<string, object?> values = PocoBuilder.GetProperties<TInterface>()
+        readonly protected Dictionary<string, object?> values;
+        readonly protected Type objectType;
+        public PocoFactory()
+        {
+            values = PocoBuilder.GetProperties<TInterface>()
                 .ToDictionary(p => p.Name, p => (object?)null);
-        readonly Type objectType = PocoBuilder.GetTypeFor<TInterface>();
-        public TInterface CreateInstance() => (TInterface)Activator.CreateInstance(objectType, values.Values.ToArray())!;
+            objectType = PocoBuilder.GetTypeFor<TInterface>();
+        }
+        protected PocoFactory(Dictionary<string, object?> values, Type objectType) => (this.values, this.objectType) = (values, objectType);
+        protected object Instantiate() => Activator.CreateInstance(objectType, values.Values.ToArray())!;
+
+        public TInterface CreateInstance() => (TInterface)Instantiate();
 
         public PocoBuilder.ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
         {
@@ -222,5 +236,17 @@ namespace PocoBuilder
             return false;
         }
         public override IEnumerable<string> GetDynamicMemberNames() => values.Keys;
+    }
+    public class PocoFactory<TInterface, TParent> : PocoFactory<TInterface>
+    {
+        public PocoFactory() : base(
+            PocoBuilder.GetProperties<TInterface, TParent>().ToDictionary(p => p.Name, p => (object?)null),
+            PocoBuilder.GetTypeFor<TInterface, TParent>())
+        { }
+        public new (TInterface asInterface, TParent asParent) CreateInstance()
+        {
+            var instance = Instantiate();
+            return ((TInterface)instance, (TParent)instance);
+        }
     }
 }
