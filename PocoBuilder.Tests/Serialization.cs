@@ -87,6 +87,7 @@ namespace PocoBuilder.Tests
                 if (method!.GetParameters().First().ParameterType == typeof(string))
                 {
                     var instance = method.MakeGenericMethod(targetType).Invoke(null, new[] { json, null });
+                    //var instance = JsonSerializer<CustomArticle>(json, options: null);
 
                     Assert.IsInstanceOfType(instance, targetType);
                     Assert.AreEqual(2, ((ICustomArticle)instance).ArticleId);
