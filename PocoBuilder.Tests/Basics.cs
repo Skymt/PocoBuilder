@@ -1,4 +1,7 @@
-﻿namespace PocoBuilder.Tests
+﻿using System.Linq.Expressions;
+using System.Reflection;
+
+namespace PocoBuilder.Tests
 {
     [TestClass]
     public class Basics
@@ -25,6 +28,10 @@
             Assert.AreEqual(properties[1].Name, parameters[1].Name);
             // Hint: The order of the properties, matches the signature
             // of the parameterized constructor.
+            // NOTE: This might not be true when using parent classes.
+            // The safest way to get the constructor parameters is by
+            // reflecting on the constructor! (Or use CreateInstanceOf(),
+            // with the initializer as in Test5_InstantiationHelper() of this class).
 
             var expectedParameterOrder = new[] { "ArticleId", "Name" };
             Assert.AreEqual(expectedParameterOrder.Length, parameters.Length);
@@ -54,6 +61,7 @@
 
             Assert.IsNotNull(instance);
 
+            // Only mutable properties can be set after activation.
             instance.Description = "A long and poetic text about a fancy product";
             Assert.IsNotNull(instance.Description);
         }
@@ -93,9 +101,16 @@
             );
             Assert.IsNotNull(instance);
             Assert.AreEqual(2, instance.ArticleId);
+            Assert.IsNotNull(instance.CustomProperty);
+            
             // Note: Uninitialized properties will have their default values.
             Assert.IsNull(instance.Name);
-            Assert.IsNotNull(instance.CustomProperty);
+
+        }
+
+        public void Test<T>(Expression<Func<T, MethodBase>> expression)
+        {
+
         }
     }
 }
