@@ -10,7 +10,7 @@
         {
             // Factories can be thought of as a mutatable version of what-ever poco interface
             // they are provided with.
-            var factory = new PocoFactory<IListProduct>();
+            var factory = new DTOFactory<IListProduct>();
             factory.Set(i => i.Name, "Fancy product")
                 .Set(i => i.Category, "Unsorted")
                 .Set(i => i.ArticleId, 5)
@@ -44,9 +44,6 @@
                 // Wrong signature of the parameters means there is no correct constructor. 
                 var instance = factory.CreateInstance();
             });
-
-
-
         }
     }
 }

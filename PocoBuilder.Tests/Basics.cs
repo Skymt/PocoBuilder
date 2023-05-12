@@ -1,7 +1,4 @@
-﻿using System.Linq.Expressions;
-using System.Reflection;
-
-namespace PocoBuilder.Tests
+﻿namespace PocoBuilder.Tests
 {
     [TestClass]
     public class Basics
@@ -15,7 +12,7 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test1_TypeGenerationAndInspection()
         {
-            var type = PocoBuilder.GetTypeFor<IListProduct>();
+            var type = DTOBuilder.GetTypeFor<IListProduct>();
             var properties = type.GetProperties();
 
             var constructors = type.GetConstructors();
@@ -42,7 +39,7 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test2_PropertyOrder()
         {
-            var type = PocoBuilder.GetTypeFor<IDetailProduct>();
+            var type = DTOBuilder.GetTypeFor<IDetailProduct>();
             var properties = type.GetProperties();
 
             var expectedProperties = new[] { "CustomProperty", "ArticleId", "Name", "Description" };
@@ -56,7 +53,7 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test3_TypeInstantiation()
         {
-            var type = PocoBuilder.GetTypeFor<IDetailProduct>();
+            var type = DTOBuilder.GetTypeFor<IDetailProduct>();
             var instance = Activator.CreateInstance(type) as IDetailProduct;
 
             Assert.IsNotNull(instance);
@@ -69,7 +66,7 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test4_TypeInstantiationReadonlyProperties()
         {
-            var type = PocoBuilder.GetTypeFor<IDetailProduct>();
+            var type = DTOBuilder.GetTypeFor<IDetailProduct>();
             var properties = type.GetProperties();
             var values = new object[properties.Length];
             for (int i = 0; i < properties.Length; i++)
@@ -95,7 +92,7 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test5_InstantiationHelper()
         {
-            var instance = PocoBuilder.CreateInstanceOf<IDetailProduct>(init => init
+            var instance = DTOBuilder.CreateInstanceOf<IDetailProduct>(init => init
                 .Set(i => i.ArticleId, 2)
                 .Set(i => i.CustomProperty, "A custom value")
             );
@@ -105,11 +102,6 @@ namespace PocoBuilder.Tests
             
             // Note: Uninitialized properties will have their default values.
             Assert.IsNull(instance.Name);
-
-        }
-
-        public void Test<T>(Expression<Func<T, MethodBase>> expression)
-        {
 
         }
     }

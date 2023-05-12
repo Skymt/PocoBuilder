@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace PocoBuilder
 {
-    public static class PocoBuilder
+    public static class DTOBuilder
     {
         public interface ISetter<TInterface> { ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value); }
         readonly struct Setter<TInterface> : ISetter<TInterface>
@@ -73,7 +73,7 @@ namespace PocoBuilder
             GetTypeFor<TInterface, TParent>().GetConstructors().Select(c => c.GetParameters())
             .First(p => p.Any()).Select(p => (p.Name!, p.ParameterType));
 
-        public static bool VerifyPocoInterface<TInterface>()
+        public static bool VerifyDTOInterface<TInterface>()
         {
             // POCO classes can only contain properties and fields.
             // Fields are not valid in an interface, thus a POCO interface may only contain properties!
@@ -177,22 +177,22 @@ namespace PocoBuilder
         }
     }
 
-    public class PocoFactory<TInterface> : DynamicObject, PocoBuilder.ISetter<TInterface>
+    public class DTOFactory<TInterface> : DynamicObject, DTOBuilder.ISetter<TInterface>
     {
         readonly protected Dictionary<string, object?> values;
         readonly protected Type objectType;
-        public PocoFactory()
+        public DTOFactory()
         {
-            values = PocoBuilder.GetProperties<TInterface>()
+            values = DTOBuilder.GetProperties<TInterface>()
                 .ToDictionary(p => p.Name, p => (object?)null);
-            objectType = PocoBuilder.GetTypeFor<TInterface>();
+            objectType = DTOBuilder.GetTypeFor<TInterface>();
         }
-        protected PocoFactory(Dictionary<string, object?> values, Type objectType) => (this.values, this.objectType) = (values, objectType);
+        protected DTOFactory(Dictionary<string, object?> values, Type objectType) => (this.values, this.objectType) = (values, objectType);
         protected object Instantiate() => Activator.CreateInstance(objectType, values.Values.ToArray())!;
 
         public TInterface CreateInstance() => (TInterface)Instantiate();
 
-        public PocoBuilder.ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
+        public DTOBuilder.ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
         {
             if (property.Body is MemberExpression expression)
                 values[expression.Member.Name] = value;
@@ -228,11 +228,11 @@ namespace PocoBuilder
         }
         public override IEnumerable<string> GetDynamicMemberNames() => values.Keys;
     }
-    public class PocoFactory<TInterface, TParent> : PocoFactory<TInterface>
+    public class DTOFactory<TInterface, TParent> : DTOFactory<TInterface>
     {
-        public PocoFactory() : base(
-            PocoBuilder.GetProperties<TInterface, TParent>().ToDictionary(p => p.Name, p => (object?)null),
-            PocoBuilder.GetTypeFor<TInterface, TParent>())
+        public DTOFactory() : base(
+            DTOBuilder.GetProperties<TInterface, TParent>().ToDictionary(p => p.Name, p => (object?)null),
+            DTOBuilder.GetTypeFor<TInterface, TParent>())
         { }
         public new (TInterface asInterface, TParent asParent) CreateInstance()
         {

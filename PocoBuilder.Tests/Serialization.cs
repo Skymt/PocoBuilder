@@ -14,7 +14,7 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test1_Serialization()
         {
-            var detailedProduct = PocoBuilder.CreateInstanceOf<IDetailProduct>(init => init
+            var detailedProduct = DTOBuilder.CreateInstanceOf<IDetailProduct>(init => init
                 .Set(i => i.ArticleId, 2)
                 .Set(i => i.Price, 99.95m)
                 .Set(i => i.Name, "Fancy Product")
@@ -30,7 +30,7 @@ namespace PocoBuilder.Tests
             Assert.IsFalse(string.IsNullOrWhiteSpace(json));
             Assert.AreNotEqual("{}", json);
 
-            var listProduct = PocoBuilder.CreateInstanceOf<IListProduct>(init => init
+            var listProduct = DTOBuilder.CreateInstanceOf<IListProduct>(init => init
                 .Set(i => i.ArticleId, 2)
                 .Set(i => i.Name, "Fancy Product")
                 .Set(i => i.Price, 99.95m)
@@ -45,7 +45,7 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test2_Deserialization()
         {
-            var json = JsonSerializer.Serialize<object>(PocoBuilder.CreateInstanceOf<ICustomArticle>(init => init
+            var json = JsonSerializer.Serialize<object>(DTOBuilder.CreateInstanceOf<ICustomArticle>(init => init
                 .Set(i => i.ArticleId, 2)
                 .Set(i => i.Name, "Fancy Product")
                 .Set(i => i.Price, 99.95m)
@@ -53,7 +53,7 @@ namespace PocoBuilder.Tests
             ));
             //{"SampleReadOnlyProperty":"This is a value!","ArticleId":2,"Name":"Fancy Product","Price":99.95}
 
-            var targetType = PocoBuilder.GetTypeFor<ICustomArticle>();
+            var targetType = DTOBuilder.GetTypeFor<ICustomArticle>();
             var deserialized = JsonSerializer.Deserialize(json, targetType) as ICustomArticle;
             Assert.IsNotNull(deserialized);
             Assert.IsTrue(deserialized.ArticleId == 2);
@@ -71,14 +71,14 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test3_DeserializationGeneric()
         {
-            var json = JsonSerializer.Serialize<object>(PocoBuilder.CreateInstanceOf<ICustomArticle>(init => init
+            var json = JsonSerializer.Serialize<object>(DTOBuilder.CreateInstanceOf<ICustomArticle>(init => init
                 .Set(i => i.ArticleId, 2)
                 .Set(i => i.Name, "Fancy Product")
                 .Set(i => i.Price, 99.95m)
                 .Set(i => i.SampleReadOnlyProperty, "This is a value!")
             ));
             //{"SampleReadOnlyProperty":"This is a value!","ArticleId":2,"Name":"Fancy Product","Price":99.95}
-            var targetType = PocoBuilder.GetTypeFor<ICustomArticle>();
+            var targetType = DTOBuilder.GetTypeFor<ICustomArticle>();
 
             // Calling the generic version of Deserialize (not sure why anyone'd want to do this):
             var genericDerializerMethods = typeof(JsonSerializer).GetMethods().Where(m => m.Name == nameof(JsonSerializer.Deserialize) && m.IsGenericMethod);

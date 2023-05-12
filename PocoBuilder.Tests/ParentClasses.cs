@@ -24,7 +24,7 @@
         public void Test4_BaseClass()
         {
             // The builder returns two references to the same instance.
-            var (asInterface, asParent) = PocoBuilder.CreateInstanceOf<IDetailProduct, GenericBase>();
+            var (asInterface, asParent) = DTOBuilder.CreateInstanceOf<IDetailProduct, GenericBase>();
             Assert.AreEqual(asParent, (object)asInterface);
             Assert.IsInstanceOfType(asInterface, typeof(IDetailProduct));
             Assert.IsInstanceOfType(asParent, typeof(GenericBase));
