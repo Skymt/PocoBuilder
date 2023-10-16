@@ -22,6 +22,9 @@
             Assert.AreEqual("Unsorted", instance1.Category);
 
             // For convenience, other ways of setting the values can be used.
+            // But take care not to mix up the types of the properties!
+
+            // Dictionary style
             factory[nameof(IListProduct.Name)] = "Fancy product v.2";
             factory[nameof(IListProduct.ArticleId)] = 6;
             factory[nameof(IListProduct.Price)] = 95.5m;
@@ -31,14 +34,13 @@
             Assert.AreEqual(instance1.Category, instance2.Category);
             Assert.AreNotEqual(instance1.Price, instance2.Price);
 
-            // Or even dynamic. But take care not to mix up the types!
+            // Or dynamic.
             dynamic shenanigans = factory;
             shenanigans.Name = "Fancy product v.3";
             shenanigans.ArticleId++;
             shenanigans.Price = 25; // Uh oh, this should be a decimal, not an int!
             
             // ONLY THE PocoFactory.Set() METHOD IS TYPESAFE!
-
             Assert.ThrowsException<MissingMethodException>(() =>
             {
                 // Wrong signature of the parameters means there is no correct constructor. 

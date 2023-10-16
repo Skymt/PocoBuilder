@@ -1,5 +1,14 @@
 ﻿namespace PocoBuilder.Tests
 {
+    // Note: CompositeTypes is an experiment for exceptionless programming.
+    // Throwing exceptions is an expensive operation. This is an idea for
+    // having exception classes as a optional return type.
+
+    // It's not limited to exceptions though - but I recommend
+    // against using this for anything else as I don't think
+    // it would produce very readable code.
+    // (Emphasis on think! I am often wrong!)
+    
     [TestClass]
     public class CompositeTypes
     {

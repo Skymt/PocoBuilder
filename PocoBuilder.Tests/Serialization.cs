@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Text.Json;
+﻿using System.Text.Json;
 namespace PocoBuilder.Tests
 {
     [TestClass]
@@ -24,8 +23,7 @@ namespace PocoBuilder.Tests
             var json = JsonSerializer.Serialize<object>(detailedProduct);
             //{"Name":"Fancy Product","ArticleId":2,"Price":99.95,"Category":"Logical Category","Description":"Eloquent Description"}
             // Note: Serializer gets confused by interfaces not having their getters implemented,
-            // so it needs to get an indication that it actually is an object that it is supposed
-            // to serialize.
+            // so it needs to get an indication that it actually is an object that it is serializing.
 
             Assert.IsFalse(string.IsNullOrWhiteSpace(json));
             Assert.AreNotEqual("{}", json);
@@ -55,17 +53,17 @@ namespace PocoBuilder.Tests
 
             var targetType = DTOBuilder.GetTypeFor<ICustomArticle>();
             var deserialized = JsonSerializer.Deserialize(json, targetType) as ICustomArticle;
+
             Assert.IsNotNull(deserialized);
             Assert.IsTrue(deserialized.ArticleId == 2);
             Assert.IsTrue(deserialized.Price == 99.95m);
             Assert.IsNotNull(deserialized.Name);
+
             // Note: JsonSerializer.Deserialize() does not use the
             // parameterized constructor, and thusly cannot initialize
             // read-only properties.
             // (This is because PocoBuilder does not annotate with the JsonConstructorAttribute)
             Assert.IsNull(deserialized.SampleReadOnlyProperty);
-
-            
         }
 
         [TestMethod]
@@ -87,7 +85,7 @@ namespace PocoBuilder.Tests
                 if (method!.GetParameters().First().ParameterType == typeof(string))
                 {
                     var instance = method.MakeGenericMethod(targetType).Invoke(null, new[] { json, null });
-                    //var instance = JsonSerializer<CustomArticle>(json, options: null);
+                    // Above line is equal to: var instance = JsonSerializer.Deserialize<CustomArticle>(json, options: null);
 
                     Assert.IsInstanceOfType(instance, targetType);
                     Assert.AreEqual(2, ((ICustomArticle)instance).ArticleId);

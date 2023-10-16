@@ -26,9 +26,10 @@
             // Hint: The order of the properties, matches the signature
             // of the parameterized constructor.
             // NOTE: This might not be true when using parent classes.
-            // The safest way to get the constructor parameters is by
-            // reflecting on the constructor! (Or use CreateInstanceOf(),
-            // with the initializer as in Test5_InstantiationHelper() of this class).
+            // A safer way to get the constructor parameters is by
+            // reflecting on the constructor!
+            // The safest way is to use the provided helper methods
+            // (see test 5).
 
             var expectedParameterOrder = new[] { "ArticleId", "Name" };
             Assert.AreEqual(expectedParameterOrder.Length, parameters.Length);
@@ -102,7 +103,6 @@
             
             // Note: Uninitialized properties will have their default values.
             Assert.IsNull(instance.Name);
-
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace PocoBuilder.Tests
+﻿using PocoBuilder.Tests.Extensions;
+
+namespace PocoBuilder.Tests
 {
     [TestClass]
     public class ParentClasses
@@ -21,11 +23,11 @@
         }
 
         [TestMethod]
-        public void Test4_BaseClass()
+        public void Test1_BaseClass()
         {
             // The builder returns two references to the same instance.
             var (asInterface, asParent) = DTOBuilder.CreateInstanceOf<IDetailProduct, GenericBase>();
-            Assert.AreEqual(asParent, (object)asInterface);
+            Assert.AreEqual(asParent, asInterface as object);
             Assert.IsInstanceOfType(asInterface, typeof(IDetailProduct));
             Assert.IsInstanceOfType(asParent, typeof(GenericBase));
 
