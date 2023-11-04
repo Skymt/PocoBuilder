@@ -10,7 +10,7 @@ namespace PocoBuilder.Tests
         [TestMethod]
         public void Test1_ValidateFromExtensionMethod()
         {
-            var product = PocoBuilder.CreateInstanceOf<IDetailProduct>(init => init
+            var product = DTOBuilder.CreateInstanceOf<IDetailProduct>(init => init
                 .Set(m => m.ArticleId, 15)
                 .Set(m => m.Name, "The name")
                 .Set(m => m.Price, 99.95m)

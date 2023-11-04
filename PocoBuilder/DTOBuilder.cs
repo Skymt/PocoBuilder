@@ -6,9 +6,9 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
 namespace PocoBuilder;
-public static class PocoBuilder
+public static class DTOBuilder
 {
-    // This class, and the related factories, are supposed to be the feature complete black box magic part of a core library.
+    // This class, and the related factory, are supposed to be the feature complete black box magic part of a core library.
     // But feel free to play around, I'm sure nothing can go wrong!
     readonly static Type IsExternalInitType = typeof(IsExternalInit);
     readonly static AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(new("DynamicPocoTypes"), AssemblyBuilderAccess.Run);
@@ -148,16 +148,16 @@ public static class PocoBuilder
     }
 }
 
-public class PocoFactory<TInterface> : DynamicObject
+public class DTOFactory<TInterface> : DynamicObject
 {
     readonly protected Type objectType;
-    readonly protected Dictionary<string, object?> template = PocoBuilder
+    readonly protected Dictionary<string, object?> template = DTOBuilder
         .GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => (object?)null);
-    public PocoFactory() => objectType = PocoBuilder.GetTypeFor<TInterface>();
-    protected PocoFactory(Type objectType) => this.objectType = objectType;
+    public DTOFactory() => objectType = DTOBuilder.GetTypeFor<TInterface>();
+    protected DTOFactory(Type objectType) => this.objectType = objectType;
 
     public virtual TInterface CreateInstance() => (TInterface)Activate();
-    public virtual IEnumerable<TInterface> CreateInstances(Action<PocoFactory<TInterface>> templater)
+    public virtual IEnumerable<TInterface> CreateInstances(Action<DTOFactory<TInterface>> templater)
     {
         while(true) { yield return CreateInstance(); templater(this); }
     }
@@ -169,7 +169,7 @@ public class PocoFactory<TInterface> : DynamicObject
             return (TValue?)template[expression.Member.Name];
         return default;
     }
-    public PocoFactory<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
+    public DTOFactory<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
     {
         if (property.Body is MemberExpression expression)
             template[expression.Member.Name] = value;

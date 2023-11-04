@@ -14,7 +14,7 @@ public class DefaultMethods
     [TestMethod]
     public void Test1_DefaultMethod()
     {
-        var product = PocoBuilder.CreateInstanceOf<IInterfaceWithMethods>(init => init
+        var product = DTOBuilder.CreateInstanceOf<IInterfaceWithMethods>(init => init
             .Set(m => m.ArticleId, 15)
             .Set(m => m.Name, "Fancy product")
             .Set(m => m.Price, 99.9534m));
@@ -27,7 +27,7 @@ public class DefaultMethods
     [TestMethod]
     public void Test2_Deconstruction()
     {
-        var product = PocoBuilder.CreateInstanceOf<IInterfaceWithMethods>(init => init
+        var product = DTOBuilder.CreateInstanceOf<IInterfaceWithMethods>(init => init
             .Set(m => m.ArticleId, 15)
             .Set(m => m.Name, "The name")
             .Set(m => m.Price, 99.95m));

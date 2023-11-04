@@ -5,9 +5,9 @@ public class Factory
 {
     public interface IListProduct : IArticle, IName, IPrice, ICategory { }
 
-    private static PocoFactory<IListProduct> BuildFactory()
+    private static DTOFactory<IListProduct> BuildFactory()
     {
-        var factory = new PocoFactory<IListProduct>();
+        var factory = new DTOFactory<IListProduct>();
         factory.Set(i => i.Name, "Fancy product")
             .Set(i => i.Category, "Unsorted")
             .Set(i => i.ArticleId, 5)

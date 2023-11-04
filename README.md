@@ -49,7 +49,7 @@ DTOBuilder also has a shorthand method that support setting immutable and read-o
         .Set(i => i.Description, "A long and poetic text about a fancy product")
     );
 
-DTOBuilder typically creates two constructors. The parameterized one can be reflected upon, to map values to properties in case System.Activator is preferable to DTOBuilder for instantiation.
+DTOBuilder creates two constructors. The parameterized one can be reflected upon, to map values to properties in case System.Activator is preferable to DTOBuilder for instantiation.
 
     interfaceAsClassType.GetConstructors()[1].GetParameters()
 
@@ -68,29 +68,6 @@ The order is the same as the declaration of first properties, then parent interf
     );
 
 ## Adding functionality
-Both GetTypeFor() and CreateInstanceOf() can accept a parent class. If the parent class contains a public parameter-less constructor, this will be called upon activation of the generated type.
-
-    public abstract class BaseClass
-    {
-        public IListProduct Model { get => (IListProduct)this; }
-    }
-    var type = DTOBuilder.GetTypeFor<IListModel, BaseClass>();
-
-_Note: The CreateInstanceOf returns a tuple when specifying a base class. The references in the tuple points to the same instance, but as the types of the interface and the base class:_
-
-    var (asInterface, asParent) = DTOBuilder.CreateInstanceOf<IListModel, BaseClass>();
+[Default implementations](https://devblogs.microsoft.com/dotnet/default-implementations-in-interfaces/) are now possible in interfaces.
 
 Another way of adding functionality to your interfaces is through [extension methods](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/extension-methods)
-
-## Limitations
-DTO classes typically contain only fields and properties. Interfaces cannot contain fields, thus a DTO interface may only contain properties.
-
-DTOBuilder has a utility method to verify the DTOness of an interface
-
-    public static bool VerifyDTOInterface<TInterface>() {...}
-
-The properties can be mutable, immutable or read-only though.
-
-    int? Mutable { get; set; }
-    int? Immutable { get; init; }
-    int? ReadOnly { get; }
