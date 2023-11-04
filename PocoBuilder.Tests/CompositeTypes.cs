@@ -45,7 +45,7 @@ public class CompositeTypes
     }
 
     [TestMethod]
-    public void Test4_TripleCompositeType()
+    public void Test4_TripleCompositeTypeBecauseWhyNot()
     {
         static void checkBoolean(bool v) => Assert.IsInstanceOfType(v, typeof(bool));
         static void checkInt(int v) => Assert.IsInstanceOfType(v, typeof(int));

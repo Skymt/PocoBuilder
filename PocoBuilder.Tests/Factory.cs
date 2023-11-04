@@ -5,46 +5,110 @@ public class Factory
 {
     public interface IListProduct : IArticle, IName, IPrice, ICategory { }
 
-    [TestMethod]
-    public void Test1_Factory()
+    private static PocoFactory<IListProduct> BuildFactory()
     {
-        // Factories can be thought of as a mutatable version of what-ever poco interface
-        // they are provided with.
-        var factory = new DTOFactory<IListProduct>();
+        var factory = new PocoFactory<IListProduct>();
         factory.Set(i => i.Name, "Fancy product")
             .Set(i => i.Category, "Unsorted")
             .Set(i => i.ArticleId, 5)
             .Set(i => i.Price, 99.50m)
         ;
+        return factory;
+    }
 
-        // When the values are set to your liking, an instance of the interface can be activated.
+    [TestMethod]
+    public void Test1_FactoryGetSet()
+    {
+        // Create a factory with some default values
+        var factory = BuildFactory();
+
+        // Instances of the interface is now a method call away.
         var instance1 = factory.CreateInstance();
+        Assert.AreEqual("Fancy product", instance1.Name);
         Assert.AreEqual("Unsorted", instance1.Category);
+        Assert.AreEqual(5, instance1.ArticleId);
+        Assert.AreEqual(99, 5m, instance1.Price);
 
-        // For convenience, other ways of setting the values can be used.
-        // But take care not to mix up the types of the properties!
+        // Type safe access to properties are handled with Get and Set methods
+        var articleId = factory.Get(i => i.ArticleId);
+        Assert.AreEqual(5, articleId);
+        var category = factory.Get(i => i.Category);
+        Assert.AreEqual("Unsorted", category);
 
-        // Dictionary style
-        factory[nameof(IListProduct.Name)] = "Fancy product v.2";
-        factory[nameof(IListProduct.ArticleId)] = 6;
-        factory[nameof(IListProduct.Price)] = 95.5m;
+        // Value can then be worked with...
+        articleId++;
+        category = "Sorted";
+        // ...and set back into the factory
+        factory.Set(i => i.ArticleId, articleId);
+        factory.Set(i => i.Category, category);
+
+        // A new instance can then be activated
         var instance2 = factory.CreateInstance();
-
         Assert.AreEqual(6, instance2.ArticleId);
-        Assert.AreEqual(instance1.Category, instance2.Category);
-        Assert.AreNotEqual(instance1.Price, instance2.Price);
+        Assert.AreEqual("Sorted", instance2.Category);
 
-        // Or dynamic.
+        // Values unchanged between instance activations remain the same
+        Assert.AreEqual(instance1.Price, instance2.Price);
+        Assert.AreEqual("Fancy product", instance2.Name);
+    }
+
+    [TestMethod]
+    public void Test2_FactoryGetSetDictionary()
+    {
+        var factory = BuildFactory();
+        var articleId = (int)(factory[nameof(IArticle.ArticleId)] ?? 0);
+        var category = factory[nameof(ICategory.Category)];
+        Assert.AreEqual(5, articleId);
+        Assert.AreEqual("Unsorted", category);
+
+        articleId++;
+        factory[nameof(IArticle.ArticleId)] = articleId;
+        factory[nameof(ICategory.Category)] = "Sorted";
+
+        var instance = factory.CreateInstance();
+        Assert.AreEqual(6, instance.ArticleId);
+        Assert.AreEqual("Sorted", instance.Category);
+
+        // THIS METHOD IS NOT TYPE SAFE
+        // If the types of the values are mismatched
+        // a suitable constructor cannot be located
+        // for activation, and a Missing Method Exception
+        // is thrown!
+        factory[nameof(IArticle.ArticleId)] = Guid.NewGuid();
+        Assert.ThrowsException<MissingMethodException>(factory.CreateInstance);
+    }
+
+    [TestMethod]
+    public void Test3_FacotoryGetSetDynamic()
+    {
+        var factory = BuildFactory();
         dynamic shenanigans = factory;
-        shenanigans.Name = "Fancy product v.3";
+        Assert.AreEqual(5, shenanigans.ArticleId);
+        Assert.AreEqual("Unsorted", shenanigans.Category);
+
         shenanigans.ArticleId++;
-        shenanigans.Price = 25; // Uh oh, this should be a decimal, not an int!
-        
-        // ONLY THE PocoFactory.Set() METHOD IS TYPESAFE!
-        Assert.ThrowsException<MissingMethodException>(() =>
-        {
-            // Wrong signature of the parameters means there is no correct constructor. 
-            var instance = factory.CreateInstance();
-        });
+        shenanigans.Category = "Sorted";
+        var instance = factory.CreateInstance();
+        Assert.AreEqual(6, instance.ArticleId);
+        Assert.AreEqual("Sorted", instance.Category);
+
+        // THIS METHOD IS NOT TYPE SAFE
+        shenanigans.ArticleId = "Day zero of going undercover as an integer and I'm already caught :(";
+        Assert.ThrowsException<MissingMethodException>(factory.CreateInstance);
+    }
+
+    [TestMethod]
+    public void Test4_FactoryEnumerable()
+    {
+        var factory = BuildFactory();
+        var articlesWithIncrementingIds = factory.CreateInstances(t => t.Set(m => m.ArticleId, t.Get(m => m.ArticleId) + 1).Set(m => m.Price, (decimal)Random.Shared.NextDouble()));
+
+        var oneHundredArticles = articlesWithIncrementingIds.Take(100).ToArray();
+
+        Assert.AreEqual(100, oneHundredArticles.Length);
+
+        Assert.AreEqual(5, oneHundredArticles[0].ArticleId);
+        Assert.AreEqual(100, oneHundredArticles[^5].ArticleId);
+        Assert.AreNotEqual(oneHundredArticles.First().Price, oneHundredArticles.Last().Price);
     }
 }

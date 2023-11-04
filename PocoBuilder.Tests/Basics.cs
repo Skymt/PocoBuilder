@@ -1,4 +1,6 @@
-﻿namespace PocoBuilder.Tests;
+﻿using NuGet.Frameworks;
+
+namespace PocoBuilder.Tests;
 
 [TestClass]
 public class Basics
@@ -12,7 +14,7 @@ public class Basics
     [TestMethod]
     public void Test1_TypeGenerationAndInspection()
     {
-        var type = DTOBuilder.GetTypeFor<IListProduct>();
+        var type = PocoBuilder.GetTypeFor<IListProduct>();
         var properties = type.GetProperties();
 
         var constructors = type.GetConstructors();
@@ -23,6 +25,7 @@ public class Basics
         Assert.AreEqual(properties.Length, parameters.Length);
         Assert.AreEqual(properties[0].Name, parameters[0].Name);
         Assert.AreEqual(properties[1].Name, parameters[1].Name);
+
         // Hint: The order of the properties, matches the signature
         // of the parameterized constructor.
         // NOTE: This might not be true when using parent classes.
@@ -40,7 +43,7 @@ public class Basics
     [TestMethod]
     public void Test2_PropertyOrder()
     {
-        var type = DTOBuilder.GetTypeFor<IDetailProduct>();
+        var type = PocoBuilder.GetTypeFor<IDetailProduct>();
         var properties = type.GetProperties();
 
         var expectedProperties = new[] { "CustomProperty", "ArticleId", "Name", "Description" };
@@ -54,7 +57,7 @@ public class Basics
     [TestMethod]
     public void Test3_TypeInstantiation()
     {
-        var type = DTOBuilder.GetTypeFor<IDetailProduct>();
+        var type = PocoBuilder.GetTypeFor<IDetailProduct>();
         var instance = Activator.CreateInstance(type) as IDetailProduct;
 
         Assert.IsNotNull(instance);
@@ -67,7 +70,7 @@ public class Basics
     [TestMethod]
     public void Test4_TypeInstantiationReadonlyProperties()
     {
-        var type = DTOBuilder.GetTypeFor<IDetailProduct>();
+        var type = PocoBuilder.GetTypeFor<IDetailProduct>();
         var properties = type.GetProperties();
         var values = new object[properties.Length];
         for (int i = 0; i < properties.Length; i++)
@@ -93,14 +96,14 @@ public class Basics
     [TestMethod]
     public void Test5_InstantiationHelper()
     {
-        var instance = DTOBuilder.CreateInstanceOf<IDetailProduct>(init => init
+        var instance = PocoBuilder.CreateInstanceOf<IDetailProduct>(init => init
             .Set(i => i.ArticleId, 2)
             .Set(i => i.CustomProperty, "A custom value")
         );
         Assert.IsNotNull(instance);
         Assert.AreEqual(2, instance.ArticleId);
         Assert.IsNotNull(instance.CustomProperty);
-        
+
         // Note: Uninitialized properties will have their default values.
         Assert.IsNull(instance.Name);
     }
