@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PocoBuilder", "PocoBuilder\PocoBuilder.csproj", "{40C1FCC5-6DB5-404D-896F-990963CCA667}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PocoBuilder", "PocoBuilder\PocoBuilder.csproj", "{40C1FCC5-6DB5-404D-896F-990963CCA667}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PocoBuilder.Tests", "PocoBuilder.Tests\PocoBuilder.Tests.csproj", "{464FA001-A15B-4A1E-BCCA-FAE9F42ED866}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PocoBuilder.Tests", "PocoBuilder.Tests\PocoBuilder.Tests.csproj", "{464FA001-A15B-4A1E-BCCA-FAE9F42ED866}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Dynamic;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -8,35 +6,33 @@ using System.Runtime.CompilerServices;
 namespace PocoBuilder;
 public static class DTOBuilder
 {
-    // This class, and the related factory, are supposed to be the feature complete black box magic part of a core library.
+    // This class, and the related utilities, are supposed to be the feature complete black box magic part of a core library.
     // But feel free to play around, I'm sure nothing can go wrong!
     readonly static Type IsExternalInitType = typeof(IsExternalInit);
     readonly static AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(new("DynamicPocoTypes"), AssemblyBuilderAccess.Run);
     readonly static ModuleBuilder module = assembly.DefineDynamicModule("DynamicPocoModule");
-    readonly static ConcurrentDictionary<Type, string> classNames = new();
+    readonly static ConcurrentDictionary<Type, string> classNameCache = new();
 
     public static Type GetTypeFor<TInterface>()
     {
-        var typeName = classNames.GetOrAdd(typeof(TInterface), nameBuilder);
-        return module.GetType(typeName) ?? typeBuilder();
+        var typeName = classNameCache.GetOrAdd(typeof(TInterface), classNameFactory);
+        return module.GetType(typeName)!;
 
-        string nameBuilder(Type t)
+        static string classNameFactory(Type type)
         {
-            var typename = t.Namespace + ".";
-            if (t.DeclaringType != null) typename += t.DeclaringType.Name + "-";
-            return typename + t.Name[1..];
-        }
-        Type typeBuilder()
-        {
-            var newType = module.DefineType(typeName!, TypeAttributes.Public);
-            return ImplementClass(newType, typeof(TInterface));
+            var newName = type.Namespace + '.';
+            if (type.DeclaringType != null) 
+                newName += type.DeclaringType.Name + '.';
+            newName += type.Name[1..];
+
+            ImplementClass(module.DefineType(newName!, TypeAttributes.Public), type);
+            return newName;
         }
     }
 
     public static TInterface CreateInstanceOf<TInterface>(Action<ISetter<TInterface>>? initializer = null)
     {
         object instance;
-        
         if (initializer != null)
         {
             var setter = new Template<TInterface>(); initializer(setter);
@@ -45,17 +41,20 @@ public static class DTOBuilder
         else instance = Activator.CreateInstance(GetTypeFor<TInterface>())!;
         return (TInterface)instance;
     }
-    public static TInterface CreateInstanceOf<TInterface>(Template<TInterface> template) => (TInterface)Activator.CreateInstance(GetTypeFor<TInterface>(), template)!;
+    public static TInterface CreateInstanceOf<TInterface>(Template<TInterface> template) => 
+        (TInterface)Activator.CreateInstance(GetTypeFor<TInterface>(), template)!;
     
     static Type ImplementClass(TypeBuilder type, Type interfaceType)
     {
         type.AddInterfaceImplementation(interfaceType);
+        type.DefineDefaultConstructor(MethodAttributes.Public);
+
         var declaredProperties = interfaceType.GetProperties();
         var inheritedProperties = interfaceType.GetInterfaces().SelectMany(i => i.GetProperties());
         var properties = new HashSet<PropertyInfo>(declaredProperties.Union(inheritedProperties));
+
         var ctor = type.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, properties.Select(p => p.PropertyType).ToArray());
         var ctorIL = ctor.GetILGenerator();
-
         foreach ((var property, var index) in properties.Select((p, i) => (p, i + 1)))
         {
             var backingField = ImplementProperty(property, type);
@@ -70,10 +69,6 @@ public static class DTOBuilder
             }
             ctorIL.Emit(OpCodes.Stfld, backingField);
         }
-
-        type.DefineDefaultConstructor(MethodAttributes.Public);
-        ctorIL.Emit(OpCodes.Ldarg_0);
-        ctorIL.Emit(OpCodes.Call, typeof(object).GetConstructor(BindingFlags.Instance | BindingFlags.Public, Array.Empty<Type>())!);
         ctorIL.Emit(OpCodes.Ret);
 
         return type.CreateType()!;
@@ -81,7 +76,7 @@ public static class DTOBuilder
     static FieldBuilder ImplementProperty(PropertyInfo propertyInfo, TypeBuilder type)
     {
         var interfaceGetter = propertyInfo.GetGetMethod();
-        var interfaceSetter = propertyInfo.GetSetMethod();
+        var interfaceSetter = propertyInfo.GetSetMethod(true);
 
         var fieldAttributes = FieldAttributes.Private;
         if (interfaceSetter?.ReturnParameter.GetRequiredCustomModifiers().Any(IsExternalInitType.Equals) ?? true)
@@ -124,84 +119,4 @@ public static class DTOBuilder
             return newMethod;
         }
     }
-
-    public interface ISetter<TInterface> { ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value); }
-    public readonly struct Template<TInterface> : ISetter<TInterface>
-    {
-        readonly Dictionary<string, object?> template;
-        public Template() => template = GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => (object?)null);
-        public TValue? Get<TValue>(Expression<Func<TInterface, TValue>> property)
-        {
-            if (property.Body is MemberExpression expression)
-                return (TValue?)template[expression.Member.Name];
-            return default;
-        }
-        public Template<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
-        {
-            if (property.Body is MemberExpression expression)
-                template[expression.Member.Name] = value;
-            return this;
-        }
-        ISetter<TInterface> ISetter<TInterface>.Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value) where TValue : default => Set(property, value);
-        
-        public static implicit operator object?[]?(Template<TInterface> setter) => setter.template.Values.ToArray();
-    }
-}
-
-public class DTOFactory<TInterface> : DynamicObject
-{
-    readonly protected Type objectType;
-    readonly protected Dictionary<string, object?> template = DTOBuilder
-        .GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => (object?)null);
-    public DTOFactory() => objectType = DTOBuilder.GetTypeFor<TInterface>();
-    protected DTOFactory(Type objectType) => this.objectType = objectType;
-
-    public virtual TInterface CreateInstance() => (TInterface)Activate();
-    public virtual IEnumerable<TInterface> CreateInstances(Action<DTOFactory<TInterface>> templater)
-    {
-        while(true) { yield return CreateInstance(); templater(this); }
-    }
-    protected object Activate() => Activator.CreateInstance(objectType, template.Values.ToArray())!;
-
-    public TValue? Get<TValue>(Expression<Func<TInterface, TValue>> property)
-    {
-        if (property.Body is MemberExpression expression)
-            return (TValue?)template[expression.Member.Name];
-        return default;
-    }
-    public DTOFactory<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue? value)
-    {
-        if (property.Body is MemberExpression expression)
-            template[expression.Member.Name] = value;
-        return this;
-    }
-    public object? this[string name]
-    {
-        get => template[name];
-        set
-        {
-            if (template.ContainsKey(name))
-                template[name] = value;
-        }
-    }
-    public override bool TryGetMember(GetMemberBinder binder, out object? result)
-    {
-        if (template.ContainsKey(binder.Name))
-        {
-            result = template[binder.Name];
-            return true;
-        }
-        result = null;
-        return false;
-    }
-    public override bool TrySetMember(SetMemberBinder binder, object? value)
-    {
-        if (template.ContainsKey(binder.Name))
-        {
-            template[binder.Name] = value;
-            return true;
-        }
-        return false;
-    }
-    public override IEnumerable<string> GetDynamicMemberNames() => template.Keys;
 }

@@ -1,6 +1,9 @@
 ﻿namespace PocoBuilder.Tests;
 
 // Note: CompositeTypes is an experiment for exceptionless programming.
+
+// To get started with DTOBuilder instead, I recommend reading the tests in TypeDetails.cs.
+
 // Throwing exceptions is an expensive operation. This is an idea for
 // having exception classes as a optional return type.
 

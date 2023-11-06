@@ -3,7 +3,7 @@
 namespace PocoBuilder.Tests;
 
 [TestClass]
-public class Basics
+public class TypeDetails
 {
     public interface IListProduct : IArticle, IName { }
     public interface IDetailProduct : IListProduct, IDescription
@@ -14,9 +14,16 @@ public class Basics
     [TestMethod]
     public void Test1_TypeGenerationAndInspection()
     {
+        // DTOBuilder creates class types from interface types.
+        // These types can be activated and populated with values.
         var type = DTOBuilder.GetTypeFor<IListProduct>();
         var properties = type.GetProperties();
 
+        // The generated type supports immutability.
+        // The proper way of assigning values to them is during activation.
+        // The generated type therefore contains two constructors;
+        // * one with no parameters
+        // * one with parameters that matches all defined properties
         var constructors = type.GetConstructors();
         Assert.AreEqual(2, constructors.Length);
 
@@ -26,18 +33,27 @@ public class Basics
         Assert.AreEqual(properties[0].Name, parameters[0].Name);
         Assert.AreEqual(properties[1].Name, parameters[1].Name);
 
-        // Hint: The order of the properties, matches the signature
-        // of the parameterized constructor.
-        // NOTE: This might not be true when using parent classes.
-        // A safer way to get the constructor parameters is by
-        // reflecting on the constructor!
-        // The safest way is to use the provided helper methods
-        // (see test 5).
 
         var expectedParameterOrder = new[] { "ArticleId", "Name" };
         Assert.AreEqual(expectedParameterOrder.Length, parameters.Length);
         Assert.AreEqual(expectedParameterOrder[0], parameters[0].Name);
         Assert.AreEqual(expectedParameterOrder[1], parameters[1].Name);
+
+        // Since keeping track of this constructor signature is important
+        // DTOBuilder comes with some utils to make it easier.
+        // See the tests Templates and Factory for more details.
+
+        // The rest of the tests here will focus on reflection.
+
+        // HINT: A convenient shorthand to type safe setting of
+        // immutable and read-only properties is by using the
+        // instantiation helper directly in the builder:
+        var instance = DTOBuilder.CreateInstanceOf<IListProduct>(init => init
+            .Set(m => m.ArticleId, 1)
+            .Set(m => m.Name, "The product name")
+        );
+        Assert.IsNotNull(instance);
+        Assert.AreEqual(1, instance.ArticleId);
     }
 
     [TestMethod]
@@ -91,20 +107,5 @@ public class Basics
         Assert.AreEqual("FancyProduct", instance.Name);
         Assert.IsNotNull(instance.Description);
         Assert.IsNotNull(instance.CustomProperty);
-    }
-
-    [TestMethod]
-    public void Test5_InstantiationHelper()
-    {
-        var instance = DTOBuilder.CreateInstanceOf<IDetailProduct>(init => init
-            .Set(i => i.ArticleId, 2)
-            .Set(i => i.CustomProperty, "A custom value")
-        );
-        Assert.IsNotNull(instance);
-        Assert.AreEqual(2, instance.ArticleId);
-        Assert.IsNotNull(instance.CustomProperty);
-
-        // Note: Uninitialized properties will have their default values.
-        Assert.IsNull(instance.Name);
     }
 }
