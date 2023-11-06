@@ -71,11 +71,19 @@ public static class DTOBuilder
         }
         ctorIL.Emit(OpCodes.Ret);
 
+        var privateProperties = interfaceType.GetProperties(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Union(interfaceType.GetInterfaces().SelectMany(i => i.GetProperties(BindingFlags.Instance | BindingFlags.NonPublic)));
+
+        foreach (var property in privateProperties)
+        {
+            _ = ImplementProperty(property, type);
+        }
+
         return type.CreateType()!;
     }
     static FieldBuilder ImplementProperty(PropertyInfo propertyInfo, TypeBuilder type)
     {
-        var interfaceGetter = propertyInfo.GetGetMethod();
+        var interfaceGetter = propertyInfo.GetGetMethod(true);
         var interfaceSetter = propertyInfo.GetSetMethod(true);
 
         var fieldAttributes = FieldAttributes.Private;

@@ -7,8 +7,11 @@ public readonly struct Template<TInterface> : ISetter<TInterface>
 {
     static readonly ConcurrentDictionary<Type, Dictionary<string, object?>> propertyCache = new();
     readonly Dictionary<string, object?> properties;
+
     public Template() => properties = propertyCache.GetOrAdd(typeof(TInterface), type =>
         DTOBuilder.GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => (object?)null));
+    public Template(IServiceProvider? serviceProvider) => properties = propertyCache.GetOrAdd(typeof(TInterface), type =>
+        DTOBuilder.GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => serviceProvider?.GetService(p.PropertyType)));
     public Template(TInterface instance) => properties = DTOBuilder.GetTypeFor<TInterface>()
         .GetProperties().ToDictionary(p => p.Name, p => p.GetValue(instance));
 
@@ -29,7 +32,7 @@ public readonly struct Template<TInterface> : ISetter<TInterface>
     public Template<TCast> Cast<TCast>()
     {
         var template = new Template<TCast>();
-        foreach (var propertyName in template.properties.Keys.Where(properties.ContainsKey))
+        foreach (var propertyName in template.properties!.Keys.Where(properties.ContainsKey))
             template.properties[propertyName] = properties[propertyName];
         return template;
     }

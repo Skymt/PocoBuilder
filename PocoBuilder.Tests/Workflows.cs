@@ -3,8 +3,10 @@
 [TestClass]
 public class Workflows
 {
-    // Workflows can be attached to property collections (like IArticle, IName) by
-    // assigning another interface, in this case journaled database management.
+    // Workflows are also interfaces, and can be combined
+    // with property interfaces.
+    // E.g an article with a name, that is stored as a journaled
+    // database object.
     public interface ITest : IArticle, IName, IJournaledObject { }
 
     [TestMethod]
@@ -15,15 +17,20 @@ public class Workflows
         dataFromSomeImport.Set(m => m.ArticleId, 5);
         dataFromSomeImport.Set(m => m.Name, "Change me later please");
 
-        // We want this data as a proper object instance - not wrapped in a template
+        // TODO: Also complete the template with local data if it exists.
+        // FORNOW: Assume this is a brand new product
+
+        // We want this data as a proper object instance - not wrapped in a template.
+        // This would indicate that it is properly saved in db and handled by core
         ITest instance;
 
         // This template is not valid for loading (when data comes from db, more properties must have been set)
         Assert.ThrowsException<Exception>(() =>
         {
-            instance = IPersistantObject.Load(dataFromSomeImport);
-            // Load verifies that the data in the template is enough,
-            // and assigns a method, to update this data in the database.
+            instance = IPersistantObject.Attach(dataFromSomeImport);
+            // (Attach verifies that the data in the template is enough,
+            // and assigns a method, to update this data in the database
+            // when it mutates.)
         });
 
         // But it can be created, which is apropriate since it's from an import
@@ -56,7 +63,7 @@ public class Workflows
         protected Action? Persist { get; init; }
         protected bool Obsolete { get; set; }
         
-        // Create a representation in permanent storage, and return a proper instance of the template
+        // Create a representation in permanent storage, and return an instance of the template
         static T Create<T>(Template<T> template, string createdBy)
             where T : IPersistantObject
         {
@@ -75,7 +82,7 @@ public class Workflows
         }
 
         // Assign proper updating mechanisms and return an actual instance of the template
-        static T Load<T>(Template<T> template)
+        static T Attach<T>(Template<T> template)
             where T : IPersistantObject
         {
             var id = template.Get<Guid?>(m => m.Id);
@@ -100,6 +107,7 @@ public class Workflows
             {
                 if (instance is IJournaledObject) throw new Exception($"Please use IJournaledObject.Update() to mutate {typeof(T).FullName}");
                 if (instance.Obsolete && throwIfObsolete) throw new Exception("This object reference has already mutated, and is no longer valid.");
+                else if(instance.Obsolete) return instance;
 
                 var template = new Template<T>(instance);
 
@@ -118,7 +126,7 @@ public class Workflows
         Guid? NextVersionId { get; protected set; }
         bool IsLatestVersion() => !NextVersionId.HasValue;
 
-        // Update the values, but keep full history, and assign blame to the author
+        // Update the values, and keep full history, and assign blame to the author
         static T Update<T>(T instance, Action<ISetter<T>> mutator, string updatedBy)
             where T : IJournaledObject
         {

@@ -6,10 +6,13 @@ namespace PocoBuilder;
 public class DTOFactory<TInterface> : DynamicObject
 {
     readonly protected Type objectType;
-    readonly protected Dictionary<string, object?> template = DTOBuilder
-        .GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => (object?)null);
-    public DTOFactory() => objectType = DTOBuilder.GetTypeFor<TInterface>();
-    protected DTOFactory(Type objectType) => this.objectType = objectType;
+    readonly protected Dictionary<string, object?> template;
+    public DTOFactory(IServiceProvider? serviceProvider = null)
+    {
+        objectType = DTOBuilder.GetTypeFor<TInterface>();
+        template = objectType.GetProperties().ToDictionary(p => p.Name, 
+            p => serviceProvider?.GetService(p.PropertyType));
+    }
 
     public virtual TInterface CreateInstance() => (TInterface)Activate();
     public virtual IEnumerable<TInterface> CreateInstances(Action<DTOFactory<TInterface>> templater)
