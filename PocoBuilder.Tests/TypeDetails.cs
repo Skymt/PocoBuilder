@@ -1,6 +1,4 @@
-﻿using NuGet.Frameworks;
-
-namespace PocoBuilder.Tests;
+﻿namespace PocoBuilder.Tests;
 
 [TestClass]
 public class TypeDetails
@@ -15,45 +13,46 @@ public class TypeDetails
     public void Test1_TypeGenerationAndInspection()
     {
         // DTOBuilder creates class types from interface types.
-        // These types can be activated and populated with values.
-        var type = DTOBuilder.GetTypeFor<IListProduct>();
+        // These types can be activated and the properties of
+        // that instance can be populated with values.
+        var type = DTOBuilder.GetTypeFor<IDetailProduct>();
+        var instance = Activator.CreateInstance(type);
         var properties = type.GetProperties();
+        properties.First(p => p.Name == nameof(IDetailProduct.Description)).SetValue(instance, "This is a description");
 
         // The generated type supports immutability.
         // The proper way of assigning values to them is during activation.
         // The generated type therefore contains two constructors;
         // * one with no parameters
-        // * one with parameters that matches all defined properties
+        // * one with parameters that matches all defined non-protected properties
         var constructors = type.GetConstructors();
         Assert.AreEqual(2, constructors.Length);
-
-        var parameterizedConstructor = constructors.First(c => c.GetParameters().Length > 0);
-        var parameters = parameterizedConstructor.GetParameters();
-        Assert.AreEqual(properties.Length, parameters.Length);
-        Assert.AreEqual(properties[0].Name, parameters[0].Name);
-        Assert.AreEqual(properties[1].Name, parameters[1].Name);
-
-
-        var expectedParameterOrder = new[] { "ArticleId", "Name" };
-        Assert.AreEqual(expectedParameterOrder.Length, parameters.Length);
-        Assert.AreEqual(expectedParameterOrder[0], parameters[0].Name);
-        Assert.AreEqual(expectedParameterOrder[1], parameters[1].Name);
 
         // Since keeping track of this constructor signature is important
         // DTOBuilder comes with some utils to make it easier.
         // See the tests Templates and Factory for more details.
 
-        // The rest of the tests here will focus on reflection.
-
         // HINT: A convenient shorthand to type safe setting of
         // immutable and read-only properties is by using the
         // instantiation helper directly in the builder:
-        var instance = DTOBuilder.CreateInstanceOf<IListProduct>(init => init
+        var sampleInstance = DTOBuilder.CreateInstanceOf<IListProduct>(init => init
             .Set(m => m.ArticleId, 1)
             .Set(m => m.Name, "The product name")
         );
-        Assert.IsNotNull(instance);
-        Assert.AreEqual(1, instance.ArticleId);
+
+        // The rest of the tests here will focus on reflection.
+        var parameterizedConstructor = constructors.First(c => c.GetParameters().Length > 0);
+        var parameters = parameterizedConstructor.GetParameters();
+        // As mentioned - the constructor signature matches the declared properties
+        Assert.AreEqual(properties.Length, parameters.Length);
+        for(int i = 0; i < parameters.Length; i++)
+            Assert.AreEqual(properties[i].Name, parameters[i].Name);
+
+        // Please take a moment to reflect on how this order of properties matches the interface declaration.
+        var expectedParameterOrder = new[] { "CustomProperty", "ArticleId", "Name", "Description" };
+        Assert.AreEqual(expectedParameterOrder.Length, parameters.Length);
+        foreach (var (exptected, idx) in expectedParameterOrder.Select((o, i) => (o, i)))
+            Assert.AreEqual(exptected, parameters[idx].Name);
     }
 
     [TestMethod]

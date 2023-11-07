@@ -6,42 +6,44 @@ using System.Runtime.CompilerServices;
 namespace PocoBuilder;
 public static class DTOBuilder
 {
-    // This class, and the related utilities, are supposed to be the feature complete black box magic part of a core library.
-    // But feel free to play around, I'm sure nothing can go wrong!
-    readonly static Type IsExternalInitType = typeof(IsExternalInit);
+    readonly static Type isExternalInitType = typeof(IsExternalInit);
     readonly static AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(new("DynamicPocoTypes"), AssemblyBuilderAccess.Run);
     readonly static ModuleBuilder module = assembly.DefineDynamicModule("DynamicPocoModule");
-    readonly static ConcurrentDictionary<Type, string> classNameCache = new();
+    readonly static ConcurrentDictionary<Type, Type> typeCache = new();
 
     public static Type GetTypeFor<TInterface>()
     {
-        var typeName = classNameCache.GetOrAdd(typeof(TInterface), classNameFactory);
-        return module.GetType(typeName)!;
+        var classType = typeCache.GetOrAdd(typeof(TInterface), typeFactory);
+        return classType;
 
-        static string classNameFactory(Type type)
+        static Type typeFactory(Type interfaceType)
         {
-            var newName = type.Namespace + '.';
-            if (type.DeclaringType != null) 
-                newName += type.DeclaringType.Name + '.';
-            newName += type.Name[1..];
+            if (!interfaceType.IsInterface)
+                throw new Exception($"DTOBuilder creates class types from interface types. {interfaceType.FullName} is not an interface type.");
+            if (!interfaceType.Name.StartsWith('I'))
+                throw new Exception("What kind of programmer declares an interface name without a leading 'I'?!? I refuse to accept this!");
 
-            ImplementClass(module.DefineType(newName!, TypeAttributes.Public), type);
-            return newName;
+            var newName = interfaceType.Namespace + '.';
+            if (interfaceType.DeclaringType != null) 
+                newName += interfaceType.DeclaringType.Name + '.';
+            newName += interfaceType.Name[1..]; // Trim the leading 'I'
+
+            var typeBuilder = module.DefineType(newName, TypeAttributes.Public);
+            ImplementClass(typeBuilder, interfaceType);
+            return module.GetType(newName)!;
         }
     }
 
-    public static TInterface CreateInstanceOf<TInterface>(Action<ISetter<TInterface>>? initializer = null)
+    public static TInterface CreateInstanceOf<TInterface>() => (TInterface)Activator.CreateInstance(GetTypeFor<TInterface>())!;
+    public static TInterface CreateInstanceOf<TInterface>(Action<ISetter<TInterface>> initializer, IServiceProvider? serviceProvider = null)
     {
-        object instance;
-        if (initializer != null)
-        {
-            var setter = new Template<TInterface>(); initializer(setter);
-            instance = Activator.CreateInstance(GetTypeFor<TInterface>(), setter)!;
-        } 
-        else instance = Activator.CreateInstance(GetTypeFor<TInterface>())!;
-        return (TInterface)instance;
+        var setter = serviceProvider == null
+            ? new DTOTemplate<TInterface>()
+            : new DTOTemplate<TInterface>(serviceProvider);
+        initializer(setter);
+        return CreateInstanceOf(setter);
     }
-    public static TInterface CreateInstanceOf<TInterface>(Template<TInterface> template) => 
+    public static TInterface CreateInstanceOf<TInterface>(DTOTemplate<TInterface> template) => 
         (TInterface)Activator.CreateInstance(GetTypeFor<TInterface>(), template)!;
     
     static Type ImplementClass(TypeBuilder type, Type interfaceType)
@@ -51,7 +53,7 @@ public static class DTOBuilder
 
         var declaredProperties = interfaceType.GetProperties();
         var inheritedProperties = interfaceType.GetInterfaces().SelectMany(i => i.GetProperties());
-        var properties = new HashSet<PropertyInfo>(declaredProperties.Union(inheritedProperties));
+        var properties = declaredProperties.Union(inheritedProperties);
 
         var ctor = type.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, properties.Select(p => p.PropertyType).ToArray());
         var ctorIL = ctor.GetILGenerator();
@@ -71,13 +73,10 @@ public static class DTOBuilder
         }
         ctorIL.Emit(OpCodes.Ret);
 
-        var privateProperties = interfaceType.GetProperties(BindingFlags.Instance | BindingFlags.NonPublic)
-            .Union(interfaceType.GetInterfaces().SelectMany(i => i.GetProperties(BindingFlags.Instance | BindingFlags.NonPublic)));
-
-        foreach (var property in privateProperties)
-        {
-            _ = ImplementProperty(property, type);
-        }
+        var protectedFlags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var protectedProperties = interfaceType.GetInterfaces().SelectMany(i => i.GetProperties(protectedFlags));
+        protectedProperties = protectedProperties.Union(interfaceType.GetProperties(protectedFlags));
+        foreach (var property in protectedProperties) ImplementProperty(property, type);
 
         return type.CreateType()!;
     }
@@ -87,7 +86,7 @@ public static class DTOBuilder
         var interfaceSetter = propertyInfo.GetSetMethod(true);
 
         var fieldAttributes = FieldAttributes.Private;
-        if (interfaceSetter?.ReturnParameter.GetRequiredCustomModifiers().Any(IsExternalInitType.Equals) ?? true)
+        if (interfaceSetter?.ReturnParameter.GetRequiredCustomModifiers().Any(isExternalInitType.Equals) ?? true)
             fieldAttributes |= FieldAttributes.InitOnly;
 
         FieldBuilder field = type.DefineField("__" + propertyInfo.Name, propertyInfo.PropertyType, fieldAttributes);

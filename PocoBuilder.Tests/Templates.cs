@@ -12,7 +12,7 @@ public class Templates
         // Templates are a bit like factories, but with type safety.
         // i.e. only the generic Get and Set methods are available
         // for value mutation.
-        var template = new Template<ITestArticle>();
+        var template = new DTOTemplate<ITestArticle>();
         template.Set(m => m.ArticleId, 1);
         template.Set(m => m.Name, "Produktnamn");
 
@@ -41,7 +41,7 @@ public class Templates
     [TestMethod]
     public void Test2_TemplateCasting() 
     {
-        var template = new Template<ITestArticle>();
+        var template = new DTOTemplate<ITestArticle>();
         template.Set(m => m.ArticleId, 1);
         template.Set(m => m.Name, "Produktnamn");
         template.Set(m => m.Price, 95);

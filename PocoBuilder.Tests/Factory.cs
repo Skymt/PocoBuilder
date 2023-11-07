@@ -3,6 +3,11 @@
 [TestClass]
 public class Factory
 {
+    // NOTE: I'm starting to think DTOFactory is a bad idea,
+    // all it has that Templates<TInterface> don't are
+    // unsafe ways of setting values.
+    // And the performance is atrocious! So much allocation!
+
     public interface IListProduct : IArticle, IName, IPrice, ICategory { }
 
     private static DTOFactory<IListProduct> BuildFactory()
@@ -69,11 +74,10 @@ public class Factory
         Assert.AreEqual(6, instance.ArticleId);
         Assert.AreEqual("Sorted", instance.Category);
 
-        // THIS METHOD IS NOT TYPE SAFE
-        // If the types of the values are mismatched
-        // a suitable constructor cannot be located
-        // for activation, and a Missing Method Exception
-        // is thrown!
+        // THIS IS NOT A TYPE SAFE OPERATION
+        // If the types of the property values are mismatched
+        // a suitable constructor cannot be matched for activation,
+        // and a MissingMethodException is thrown!
         factory[nameof(IArticle.ArticleId)] = Guid.NewGuid();
         Assert.ThrowsException<MissingMethodException>(factory.CreateInstance);
     }
@@ -92,8 +96,8 @@ public class Factory
         Assert.AreEqual(6, instance.ArticleId);
         Assert.AreEqual("Sorted", instance.Category);
 
-        // THIS METHOD IS NOT TYPE SAFE
-        shenanigans.ArticleId = "Day zero of going undercover as an integer and I'm already caught :(";
+        // THIS IS NOT A TYPE SAFE OPERATION
+        shenanigans.ArticleId = "Day one of going undercover as an integer and I'm already caught :(";
         Assert.ThrowsException<MissingMethodException>(factory.CreateInstance);
     }
 

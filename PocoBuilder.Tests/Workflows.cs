@@ -7,30 +7,29 @@ public class Workflows
     // with property interfaces.
     // E.g an article with a name, that is stored as a journaled
     // database object.
-    public interface ITest : IArticle, IName, IJournaledObject { }
+    public interface IDbArticle : IArticle, IName, IJournaledObject { }
 
     [TestMethod]
     public void Test1_Workflows()
     {
         // Say we get some data from some import, and we fill a template of our own design with it.
-        var dataFromSomeImport = new Template<ITest>();
+        var dataFromSomeImport = new DTOTemplate<IDbArticle>();
         dataFromSomeImport.Set(m => m.ArticleId, 5);
         dataFromSomeImport.Set(m => m.Name, "Change me later please");
-
         // TODO: Also complete the template with local data if it exists.
-        // FORNOW: Assume this is a brand new product
+        // FORNOW: Assume this is a brand new product.
 
         // We want this data as a proper object instance - not wrapped in a template.
         // This would indicate that it is properly saved in db and handled by core
-        ITest instance;
-
-        // This template is not valid for loading (when data comes from db, more properties must have been set)
+        IDbArticle instance;
+        
+        // This template is not valid for attaching
         Assert.ThrowsException<Exception>(() =>
         {
             instance = IPersistantObject.Attach(dataFromSomeImport);
-            // (Attach verifies that the data in the template is enough,
-            // and assigns a method, to update this data in the database
-            // when it mutates.)
+            // (Attach verifies that the data in the template is enough
+            // to make updates to this object in our database, and
+            // assigns a delegate to actually do this update.)
         });
 
         // But it can be created, which is apropriate since it's from an import
@@ -40,10 +39,10 @@ public class Workflows
         // This instance is the first and so far only version.
         Assert.IsTrue(instance.IsLatestVersion());
 
-        // We cannot simply mutate it, since it is a fully journaled object
+        // We cannot simply change it anonymously, since it is a fully journaled object
         Assert.ThrowsException<Exception>(() =>
         {
-            IPersistantObject.Mutate(instance, mutator => mutator.Set(m => m.Name, "A brand new name"));
+            IPersistantObject.Update(instance, mutator => mutator.Set(m => m.Name, "A brand new name"));
         });
 
         // Instead we need to update it, and provide an identity
@@ -53,6 +52,10 @@ public class Workflows
 
         Assert.AreEqual(instance.ArticleId, updatedInstance.ArticleId);
         Assert.AreNotEqual(instance.Name, updatedInstance.Name);
+
+        // NOTE: This sample does not cover all types of valuable database storage!
+        // Valuelist tables, log entry tables, n-n relationship tables AND OTHERS
+        // are NOT suitable for this datastructure!!!
     }
 
     public interface IPersistantObject
@@ -64,7 +67,7 @@ public class Workflows
         protected bool Obsolete { get; set; }
         
         // Create a representation in permanent storage, and return an instance of the template
-        static T Create<T>(Template<T> template, string createdBy)
+        static T Create<T>(DTOTemplate<T> template, string createdBy)
             where T : IPersistantObject
         {
             var id = template.Get<Guid?>(m => m.Id);
@@ -74,7 +77,6 @@ public class Workflows
                 .Set(m => m.CreatedBy, createdBy)
                 .Set(m => m.Created, DateTimeOffset.UtcNow);
             // TODO: Get an apropriate delegate that performs UPDATE for T from a config source, and assign it to IPersistantObject.Persist.
-            // template.Set(m => m.Persist, action);
 
             var instance = DTOBuilder.CreateInstanceOf(template);
             // TODO: Get an apropriate delegate that performs INSERT for T from a config source and invoke it for instance.
@@ -82,14 +84,14 @@ public class Workflows
         }
 
         // Assign proper updating mechanisms and return an actual instance of the template
-        static T Attach<T>(Template<T> template)
+        static T Attach<T>(DTOTemplate<T> template)
             where T : IPersistantObject
         {
-            var id = template.Get<Guid?>(m => m.Id);
+            var id = template.Get<Guid?>(m => m.Id); // read as nullable guid, because who the eff knows what populated this template.
             if (id == null || id == Guid.Empty) throw new Exception("This template is missing database ID - are you sure this data comes from the right place?");
 
             var created = template.Get<DateTimeOffset?>(m => m.Created);
-            if (created == null || created == DateTime.MinValue) throw new Exception("This template is missing it's creation date - we cannot load something that hasn't been created.");
+            if (created == null || created == DateTime.MinValue) throw new Exception("This template is missing it's creation date - loading something that hasn't been created doesnt make sense (and you thought it was my patterns that didn't make sense shame on you.)");
 
             if (string.IsNullOrEmpty(template.Get(m => m.CreatedBy))) throw new Exception("This template is missing a creator - anonymous data is not recommended in a professional setting!");
 
@@ -100,22 +102,22 @@ public class Workflows
 
         // Change values, immutable or not, and update the database.
         // Returns a new object reference with the changes made.
-        static T Mutate<T>(T instance, Action<ISetter<T>> mutator, bool throwIfObsolete = false)
+        static T Update<T>(T instance, Action<ISetter<T>> mutator, bool throwIfObsolete = false)
                 where T : IPersistantObject
         {
             lock (instance)
             {
                 if (instance is IJournaledObject) throw new Exception($"Please use IJournaledObject.Update() to mutate {typeof(T).FullName}");
                 if (instance.Obsolete && throwIfObsolete) throw new Exception("This object reference has already mutated, and is no longer valid.");
-                else if(instance.Obsolete) return instance;
+                else if (instance.Obsolete) return instance;
 
-                var template = new Template<T>(instance);
+                var template = new DTOTemplate<T>(instance);
 
                 mutator(template);
-                instance.Obsolete = true;
 
                 var mutatedInstance = DTOBuilder.CreateInstanceOf(template);
                 mutatedInstance.Persist?.Invoke();
+                instance.Obsolete = true;
 
                 return mutatedInstance;
             }
@@ -134,7 +136,7 @@ public class Workflows
             {
                 if (instance.Obsolete || instance.NextVersionId.HasValue) 
                     throw new Exception("You cannot make an update to an obsolete object reference.");
-                var template = new Template<T>(instance);
+                var template = new DTOTemplate<T>(instance);
 
                 mutator(template);
                 template.Set(m => m.Id, Guid.Empty);

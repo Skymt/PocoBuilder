@@ -6,7 +6,7 @@ public class DefaultMethods
     public interface IInterfaceWithMethods : IArticle, IName, IPrice
     {
         string GetSalesPitch()
-            => $"Buy {Name}, now only {Price:#.##} monies!!!";
+            => FormattableString.Invariant($"Buy {Name}, now only {Price:#.##} monies!!!");
         void Deconstruct(out int articleId, out string name, out IPrice price)
             => (articleId, name, price) = (ArticleId, Name, this);
     }
@@ -17,7 +17,7 @@ public class DefaultMethods
         var product = DTOBuilder.CreateInstanceOf<IInterfaceWithMethods>(init => init
             .Set(m => m.ArticleId, 15)
             .Set(m => m.Name, "Fancy product")
-            .Set(m => m.Price, 99.9534m));
+            .Set(m => m.Price, 99.95345789m));
         Assert.IsNotNull(product);
 
         var salesPitch = product.GetSalesPitch();
