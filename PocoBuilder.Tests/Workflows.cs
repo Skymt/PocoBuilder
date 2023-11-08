@@ -48,6 +48,7 @@ public class Workflows
         // Instead we need to update it, and provide an identity
         var updatedInstance = IJournaledObject.Update(instance, mutator => mutator.Set(m => m.Name, "A brand new name"), updatedBy: "Fredrik");
         Assert.IsFalse(instance.IsLatestVersion());
+        Assert.IsTrue(updatedInstance.IsLatestVersion());
         Assert.AreEqual(updatedInstance.Id, instance.NextVersionId);
 
         Assert.AreEqual(instance.ArticleId, updatedInstance.ArticleId);
@@ -100,7 +101,7 @@ public class Workflows
             return DTOBuilder.CreateInstanceOf(template);
         }
 
-        // Change values, immutable or not, and update the database.
+        // Change values and update the database.
         // Returns a new object reference with the changes made.
         static T Update<T>(T instance, Action<ISetter<T>> mutator, bool throwIfObsolete = false)
                 where T : IPersistantObject

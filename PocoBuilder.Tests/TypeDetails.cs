@@ -15,10 +15,14 @@ public class TypeDetails
         // DTOBuilder creates class types from interface types.
         // These types can be activated and the properties of
         // that instance can be populated with values.
-        var type = DTOBuilder.GetTypeFor<IDetailProduct>();
+        var type = DTOBuilder.GetTypeFor<IListProduct>();
         var instance = Activator.CreateInstance(type);
         var properties = type.GetProperties();
-        properties.First(p => p.Name == nameof(IDetailProduct.Description)).SetValue(instance, "This is a description");
+        properties.First(p => p.Name == nameof(IListProduct.Name)).SetValue(instance, "This is a name");
+        // ( BIG NOTE: You'd think reflection on init-only properties would be protected somehow.
+        // Seems no one cared though :( https://github.com/dotnet/runtime/issues/11811.)
+        
+
 
         // The generated type supports immutability.
         // The proper way of assigning values to them is during activation.
@@ -39,20 +43,15 @@ public class TypeDetails
             .Set(m => m.ArticleId, 1)
             .Set(m => m.Name, "The product name")
         );
-
         // The rest of the tests here will focus on reflection.
+
         var parameterizedConstructor = constructors.First(c => c.GetParameters().Length > 0);
         var parameters = parameterizedConstructor.GetParameters();
+
         // As mentioned - the constructor signature matches the declared properties
         Assert.AreEqual(properties.Length, parameters.Length);
         for(int i = 0; i < parameters.Length; i++)
             Assert.AreEqual(properties[i].Name, parameters[i].Name);
-
-        // Please take a moment to reflect on how this order of properties matches the interface declaration.
-        var expectedParameterOrder = new[] { "CustomProperty", "ArticleId", "Name", "Description" };
-        Assert.AreEqual(expectedParameterOrder.Length, parameters.Length);
-        foreach (var (exptected, idx) in expectedParameterOrder.Select((o, i) => (o, i)))
-            Assert.AreEqual(exptected, parameters[idx].Name);
     }
 
     [TestMethod]
@@ -61,6 +60,7 @@ public class TypeDetails
         var type = DTOBuilder.GetTypeFor<IDetailProduct>();
         var properties = type.GetProperties();
 
+        // Please take a moment to reflect on how this order of properties matches the interface declaration.
         var expectedProperties = new[] { "CustomProperty", "ArticleId", "Name", "Description" };
 
         foreach (var (expected, actual) in expectedProperties.Zip(properties))

@@ -10,6 +10,15 @@ public static class DTOBuilder
     readonly static AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(new("DynamicPocoTypes"), AssemblyBuilderAccess.Run);
     readonly static ModuleBuilder module = assembly.DefineDynamicModule("DynamicPocoModule");
     readonly static ConcurrentDictionary<Type, Type> typeCache = new();
+    static DTOBuilder()
+    {
+#pragma warning disable SYSLIB0015 // this is so sad https://github.com/dotnet/runtime/issues/11811
+        var disablePrivateReflection = typeof(DisablePrivateReflectionAttribute).GetConstructor(Array.Empty<Type>());
+        var attr = new CustomAttributeBuilder(disablePrivateReflection!, Array.Empty<object>());
+        assembly.SetCustomAttribute(attr);
+#pragma warning restore SYSLIB0015 // setters marked with "init" keyword ARE ***NOT SAFE FROM REFLECTION***!
+    }
+
 
     public static Type GetTypeFor<TInterface>()
     {
