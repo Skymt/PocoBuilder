@@ -77,12 +77,13 @@ public class Serialization
         var jsonOptions = new JsonSerializerOptions();
         // DTOConverters handles the transformation between
         // the interface type and the generated class type.
-        jsonOptions.Converters.Add(new DTOConverter<IListProduct>());
+        jsonOptions.Converters.Add(new DTOConverter<ICustomArticle>());
 
-        var listProduct = DTOBuilder.CreateInstanceOf<IListProduct>(init => init
+        var listProduct = DTOBuilder.CreateInstanceOf<ICustomArticle>(init => init
             .Set(i => i.ArticleId, 2)
             .Set(i => i.Name, "Fancy Product")
             .Set(i => i.Price, 99.95m)
+            .Set(i => i.SampleReadOnlyProperty, "TADAA!")
         );
 
         // Now you can serialize without <object>
@@ -91,13 +92,16 @@ public class Serialization
 
         // And you can use your desired target interface-type as
         // generic argument when deserializing.
-        var instance = JsonSerializer.Deserialize<IListProduct>(json, jsonOptions);
+        var instance = JsonSerializer.Deserialize<ICustomArticle>(json, jsonOptions);
         Assert.IsNotNull(instance);
-        Assert.IsInstanceOfType<IListProduct>(instance);
+        Assert.IsInstanceOfType<ICustomArticle>(instance);
+
+        // This also overcomes the limitation with read-only properties
+        Assert.AreEqual("TADAA!", instance.SampleReadOnlyProperty);
     }
 
     [TestMethod]
-    public void Test4_MoreConverters()
+    public void Test4_MoreAboutConverters()
     {
         // Converters are quite versitile and honors the options they are
         // bundled with.
