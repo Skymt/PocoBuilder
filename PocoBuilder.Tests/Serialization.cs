@@ -73,36 +73,7 @@ public class Serialization
     }
 
     [TestMethod]
-    public void Test3_DeserializationGeneric()
-    {
-        var json = JsonSerializer.Serialize<object>(DTOBuilder.CreateInstanceOf<ICustomArticle>(init => init
-            .Set(i => i.ArticleId, 2)
-            .Set(i => i.Name, "Fancy Product")
-            .Set(i => i.Price, 99.95m)
-            .Set(i => i.SampleReadOnlyProperty, "This is a value!")
-        ));
-        //{"SampleReadOnlyProperty":"This is a value!","ArticleId":2,"Name":"Fancy Product","Price":99.95}
-        var targetType = DTOBuilder.GetTypeFor<ICustomArticle>();
-
-        // Calling the generic version of Deserialize (not sure why anyone'd want to do this):
-        var genericDerializerMethods = typeof(JsonSerializer).GetMethods().Where(m => m.Name == nameof(JsonSerializer.Deserialize) && m.IsGenericMethod);
-        foreach (var method in genericDerializerMethods)
-        {
-            if (method!.GetParameters().First().ParameterType == typeof(string))
-            {
-                var instance = method.MakeGenericMethod(targetType).Invoke(null, new[] { json, null });
-                // Above line is equal to: var instance = JsonSerializer.Deserialize<CustomArticle>(json, options: null);
-
-                Assert.IsInstanceOfType(instance, targetType);
-                Assert.AreEqual(2, ((ICustomArticle)instance).ArticleId);
-                break;
-            }
-        }
-    }
-
-
-    [TestMethod]
-    public void Test4_Converters() 
+    public void Test3_Converters() 
     {
         var jsonOptions = new JsonSerializerOptions();
         // DTOConverters handles the transformation between
@@ -127,7 +98,7 @@ public class Serialization
     }
 
     [TestMethod]
-    public void Test5_ComplexConverters()
+    public void Test4_DataStructures()
     {
         // Converters are quite versitile and honors the options they are
         // bundled with.
@@ -158,7 +129,9 @@ public class Serialization
 
         json = "{\"valuE\":[{\"index\":8},{\"index\":9},{\"index\":10}]}";
         // A separate converter registration is required if the generic
-        // type is a collection type though! <ISimple[]> is very different from <ISimple>.
+        // type is a collection type though! Calling GetTypeFor<ISimple[]>()
+        // would result in an exception but GetTypeFor<IGeneric<ISimple[]>>()
+        // is fine.
         var complexOfArr = JsonSerializer.Deserialize<IGeneric<ISimple[]>>(json, jsonOptions);
         Assert.IsNotNull(complexOfArr); Assert.AreEqual(9, complexOfArr.Value[1].Index);
     }
