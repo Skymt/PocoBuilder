@@ -86,14 +86,14 @@ public class TypeDetails
     public void Test4_TypeInstantiationReadonlyProperties()
     {
         var type = DTOBuilder.GetTypeFor<IDetailProduct>();
-        var properties = type.GetProperties();
+        var properties = type.GetProperties(); // properties comes in the same order as the constructor signature
         var values = new object[properties.Length];
         for (int i = 0; i < properties.Length; i++)
         {
             values[i] = properties[i].Name switch
             {
                 nameof(IDetailProduct.ArticleId) => 2,
-                nameof(IDetailProduct.Name) => "FancyProduct",
+                nameof(IDetailProduct.Name) => "Fancy Product",
                 nameof(IDetailProduct.Description) => "A long and poetic text about a fancy product",
                 nameof(IDetailProduct.CustomProperty) => "A custom value",
                 _ => throw new NotImplementedException()

@@ -92,7 +92,7 @@ public class Workflows
             if (id == null || id == Guid.Empty) throw new Exception("This template is missing database ID - are you sure this data comes from the right place?");
 
             var created = template.Get<DateTimeOffset?>(m => m.Created);
-            if (created == null || created == DateTime.MinValue) throw new Exception("This template is missing it's creation date - loading something that hasn't been created doesnt make sense (and you thought it was my patterns that didn't make sense shame on you.)");
+            if (created == null || created == DateTime.MinValue) throw new Exception("This template is missing it's creation date");
 
             if (string.IsNullOrEmpty(template.Get(m => m.CreatedBy))) throw new Exception("This template is missing a creator - anonymous data is not recommended in a professional setting!");
 
@@ -136,9 +136,9 @@ public class Workflows
             lock (instance)
             {
                 if (instance.Obsolete || instance.NextVersionId.HasValue) 
-                    throw new Exception("You cannot make an update to an obsolete object reference.");
-                var template = new DTOTemplate<T>(instance);
+                    throw new Exception("You cannot make an update to an obsolete object.");
 
+                var template = new DTOTemplate<T>(instance);
                 mutator(template);
                 template.Set(m => m.Id, Guid.Empty);
 

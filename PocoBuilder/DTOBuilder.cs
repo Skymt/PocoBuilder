@@ -35,7 +35,14 @@ public static class DTOBuilder
             var newName = interfaceType.Namespace + '.';
             if (interfaceType.DeclaringType != null) 
                 newName += interfaceType.DeclaringType.Name + '.';
-            newName += interfaceType.Name[1..]; // Trim the leading 'I'
+            if (interfaceType.IsGenericType)
+            {
+                newName += interfaceType.Name[1..^2] + '.';
+                newName += interfaceType.GetGenericArguments()
+                    .Select(t => t.Name.Replace("[]", ".Arr") + '.')
+                    .Aggregate((s, n) => s + n);
+            }
+            else newName += interfaceType.Name[1..]; // Trim the leading 'I'
 
             var typeBuilder = module.DefineType(newName, TypeAttributes.Public);
             ImplementClass(typeBuilder, interfaceType);

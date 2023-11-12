@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using System.Transactions;
+
 namespace PocoBuilder.Tests;
 
 [TestClass]
@@ -10,6 +12,10 @@ public class Serialization
     {
         string SampleReadOnlyProperty { get; }
     }
+
+    public interface ISimple { int Index { get; } }
+    public interface IGeneric<T> { T Value { get; init; } }
+
     [TestMethod]
     public void Test1_Serialization()
     {
@@ -92,5 +98,54 @@ public class Serialization
                 break;
             }
         }
+    }
+
+
+    [TestMethod]
+    public void Test4_Converters() 
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        jsonOptions.Converters.Add(new DTOConverter<IListProduct>());
+
+        var listProduct = DTOBuilder.CreateInstanceOf<IListProduct>(init => init
+            .Set(i => i.ArticleId, 2)
+            .Set(i => i.Name, "Fancy Product")
+            .Set(i => i.Price, 99.95m)
+        );
+        var json = JsonSerializer.Serialize(listProduct, jsonOptions);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(json));
+
+        var instance = JsonSerializer.Deserialize<IListProduct>(json, jsonOptions);
+        Assert.IsNotNull(instance);
+        Assert.IsInstanceOfType<IListProduct>(instance);
+    }
+
+    [TestMethod]
+    public void Test5_ComplexConverters()
+    {
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        jsonOptions.Converters.Add(new DTOConverter<ISimple>());
+        jsonOptions.Converters.Add(new DTOConverter<IGeneric<ISimple>>());
+        jsonOptions.Converters.Add(new DTOConverter<IGeneric<ISimple[]>>());
+
+        string json = "{\"index\":2}";
+        var simple = JsonSerializer.Deserialize<ISimple>(json, jsonOptions);
+        Assert.IsNotNull(simple);
+
+        json = "[{\"INDEX\":3},{\"index\":4},{\"InDeX\":5}]";
+        var simpleArr = JsonSerializer.Deserialize<ISimple[]>(json, jsonOptions);
+        Assert.IsNotNull(simpleArr);
+
+        json = "{\"value\":{\"Index\":6}}";
+        var complex = JsonSerializer.Deserialize<IGeneric<ISimple>>(json, jsonOptions);
+        Assert.IsNotNull(complex);
+
+        json = "[{\"value\":{\"Index\":7}}]";
+        var complexArr = JsonSerializer.Deserialize<IGeneric<ISimple>[]>(json, jsonOptions);
+        Assert.IsNotNull(complexArr);
+
+        json = "{\"value\":[{\"index\":8},{\"index\":9},{\"index\":10}]}";
+        var complexOfArr = JsonSerializer.Deserialize<IGeneric<ISimple[]>>(json, jsonOptions);
+        Assert.IsNotNull(complexOfArr);
     }
 }
