@@ -6,23 +6,36 @@ namespace PocoBuilder;
 public interface ISetter<TInterface> { ISetter<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue value); }
 public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
 {
-    static readonly ConcurrentDictionary<Type, Dictionary<string, object?>> propertyCache = new();
     readonly IServiceProvider? serviceProvider = null;
     readonly Dictionary<string, object?> properties;
 
-    public DTOTemplate() => properties = propertyCache.GetOrAdd(typeof(TInterface), type =>
-        DTOBuilder.GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => (object?)null));
-    public DTOTemplate(IServiceProvider serviceProvider, bool preventCaching = true)
+    public DTOTemplate() => properties = DTOBuilder.GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => (object?)null);
+    public DTOTemplate(IServiceProvider serviceProvider)
     {
         this.serviceProvider = serviceProvider;
-        properties = preventCaching
-            ? DTOBuilder.GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, valueExtractor)
-            : propertyCache.GetOrAdd(typeof(TInterface), type => DTOBuilder.GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, valueExtractor));
+        properties = DTOBuilder.GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, valueExtractor);
         object? valueExtractor(PropertyInfo p) => serviceProvider.GetService(p.PropertyType);
     }
     public DTOTemplate(TInterface instance) => properties = DTOBuilder.GetTypeFor<TInterface>()
         .GetProperties().ToDictionary(p => p.Name, p => p.GetValue(instance));
 
+    public bool TryGet<TValue>(Expression<Func<TInterface, TValue>> property, out TValue? value)
+    {
+        value = default;
+        if (property.Body is MemberExpression expression)
+        {
+            if(properties.ContainsKey(expression.Member.Name))
+            {
+                var objectValue = properties[expression.Member.Name];
+                if(objectValue != null)
+                {
+                    value = (TValue?)objectValue;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     public TValue Get<TValue>(Expression<Func<TInterface, TValue>> property)
     {
         if (property.Body is MemberExpression expression)
@@ -45,7 +58,7 @@ public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
     {
         var template = serviceProvider == null
             ? new DTOTemplate<TCast>()
-            : new DTOTemplate<TCast>(serviceProvider, true);
+            : new DTOTemplate<TCast>(serviceProvider);
         foreach (var propertyName in template.properties!.Keys.Where(properties.ContainsKey))
             template.properties[propertyName] = properties[propertyName];
         return template;

@@ -9,9 +9,8 @@ public class Templates
     [TestMethod]
     public void Test1_Templates()
     {
-        // Templates are a bit like factories, but with type safety.
-        // i.e. only the generic Get and Set methods are available
-        // for value mutation.
+        // Templates are a type-safe containers for
+        // interfaces with immutable properties
         var template = new DTOTemplate<ITestArticle>();
         template.Set(m => m.ArticleId, 1);
         template.Set(m => m.Name, "Produktnamn");
@@ -20,8 +19,7 @@ public class Templates
         Assert.IsNotNull(instance);
         Assert.AreEqual(1, instance.ArticleId);
 
-        // Just like factories, templates can be re-used when
-        // creating instances.
+        // Templates can be re-used to create many instances
         var oneHundredArticles = infiniteArticles().Take(100).ToList();
         Assert.AreEqual(1, oneHundredArticles.First().ArticleId);
         Assert.AreEqual(100, oneHundredArticles.Last().ArticleId);
