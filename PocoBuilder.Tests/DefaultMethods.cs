@@ -9,6 +9,7 @@ public class DefaultMethods
             => FormattableString.Invariant($"Buy {Name}, now only {Price:#.##} monies!!!");
         void Deconstruct(out int articleId, out string name, out IPrice price)
             => (articleId, name, price) = (ArticleId, Name, this);
+        // TODO: Handle default implementations for properties
     }
 
     [TestMethod]

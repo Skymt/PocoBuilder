@@ -72,7 +72,7 @@ public class Serialization
     }
 
     [TestMethod]
-    public void Test3_Converters() 
+    public void Test3_Converters()
     {
         var jsonOptions = new JsonSerializerOptions();
         // DTOConverters handles the transformation between

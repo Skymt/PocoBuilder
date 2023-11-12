@@ -9,9 +9,9 @@ public class DatabaseObjects
     // E.g an article with a name, that is stored as a journaled
     // database object.
     public interface IDbArticle : IArticle, IName, IJournaledObject { }
-    public interface ICartItem : IArticle, IName, IPrice, IPersistantObject { Guid CartId { get; init; } int Count { get; set; } }
+    public interface ICartItem : IArticle, IPrice, IPersistant<ICartItem> { Guid CartId { get; init; } int Count { get; set; } }
 
-
+    public interface IGeneric : ICartItem, IPersistant<IGeneric> { }
     [TestMethod]
     public void Test1_PersistantObject()
     {
@@ -25,7 +25,7 @@ public class DatabaseObjects
         var cartItemTemplate = IPersistantObject.Cast<ICartItem, IDbArticle>(article);
         cartItemTemplate.Set(m => m.CartId, Guid.NewGuid());
         cartItemTemplate.Set(m => m.Count, 1);
-        cartItemTemplate.Set(m => m.Price, 45.50m);
+        cartItemTemplate.Set(m => m.Price, 64m);
 
         var cartItem = IPersistantObject.Create(cartItemTemplate, "CartService");
         Assert.IsNotNull(cartItem);
@@ -48,6 +48,19 @@ public class DatabaseObjects
         cartItem = cartItemUpdate;
         cartItemUpdate = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, 1));
         Assert.IsNotNull(cartItemUpdate);
+
+        // Test generic version
+        var testItem = IPersistantObject.Cast<IGeneric, ICartItem>(cartItem);
+        var testInstance = IPersistantObject.Create(testItem, "Test");
+        Assert.AreEqual(64m, testInstance.Price);
+        Assert.IsTrue(testInstance.Mutate(mutator => mutator.Set(m => m.Price, testInstance.Price / 2), out testInstance));
+        Assert.AreEqual(32m, testInstance.Price);
+        Assert.IsTrue(testInstance.Mutate(mutator => mutator.Set(m => m.Price, testInstance.Price / 2), out IGeneric anotherInstance));
+        Assert.AreEqual(16m, anotherInstance.Price);
+
+        // We lost reference chain, and cannot mutate test any longer
+        Assert.IsFalse(testInstance.Mutate(mutator => mutator.Set(m => m.Price, anotherInstance.Price / 2), out testInstance));
+        Assert.AreEqual(32m, testInstance.Price); // <- unchanged
     }
 
     [TestMethod]
@@ -69,7 +82,7 @@ public class DatabaseObjects
 
         if (!IPersistantObject.CanAttach(dataFromSomeImport)) // Oh, it's not a valid db object yet, so it must be created.
             instance = IPersistantObject.Create(dataFromSomeImport, createdBy: "AutoImport");
-        
+
         // After creation, the instance exists in db, and has an Id set.
         Assert.IsNotNull(instance);
 
@@ -82,12 +95,12 @@ public class DatabaseObjects
         // Journaled object cannot mutate without an identity.
         Assert.ThrowsException<Exception>(() =>
         {
-            var updatedInstance = IPersistantObject.Update(instance, 
+            var updatedInstance = IPersistantObject.Update(instance,
                 mutator => mutator.Set(m => m.Name, "A brand new name"));
         });
 
-        var updatedInstance = IJournaledObject.Update(instance, 
-            mutator => mutator.Set(m => m.Name, "A brand new name"), 
+        var updatedInstance = IJournaledObject.Update(instance,
+            mutator => mutator.Set(m => m.Name, "A brand new name"),
             updatedBy: "Fredrik");
         Assert.IsFalse(instance.IsLatestVersion());
         Assert.IsTrue(updatedInstance.IsLatestVersion());
@@ -108,7 +121,7 @@ public class DatabaseObjects
             .Set(a => a.Name, "Very nice article");
 
         // Ensure that it is valid db-object before attaching it to avoid exceptions!
-        if (IPersistantObject.CanAttach(dataFromDb)) 
+        if (IPersistantObject.CanAttach(dataFromDb))
         {
             var article = IPersistantObject.Attach(dataFromDb);
             Assert.IsNotNull(article);

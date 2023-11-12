@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
 
 namespace PocoBuilder;
@@ -25,10 +24,10 @@ public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
         value = default;
         if (property.Body is MemberExpression expression)
         {
-            if(properties.ContainsKey(expression.Member.Name))
+            if (properties.ContainsKey(expression.Member.Name))
             {
                 var objectValue = properties[expression.Member.Name];
-                if(objectValue != null)
+                if (objectValue != null)
                 {
                     value = (TValue?)objectValue;
                     return true;
@@ -47,7 +46,7 @@ public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
     {
         if (property.Body is MemberExpression expression)
         {
-            if(!properties.ContainsKey(expression.Member.Name))
+            if (!properties.ContainsKey(expression.Member.Name))
                 throw new AccessViolationException($"{DTOBuilder.GetTypeFor<TInterface>().Name}.{expression.Member.Name} is protected, and cannot be set by a templater.");
             properties[expression.Member.Name] = value;
         }
@@ -58,7 +57,7 @@ public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
     public DTOTemplate<TCast> Cast<TCast>()
     {
         DTOTemplate<TCast> template = serviceProvider != null ? new(serviceProvider) : new();
-        foreach(var prop in castedProperties)
+        foreach (var prop in castedProperties)
         {
             if (template.properties.ContainsKey(prop.Key))
                 template.properties[prop.Key] = prop.Value;
@@ -66,9 +65,9 @@ public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
                 template.castedProperties[prop.Key] = prop.Value;
         }
 
-        foreach(var prop in properties)
+        foreach (var prop in properties)
         {
-            if(template.properties.ContainsKey(prop.Key))
+            if (template.properties.ContainsKey(prop.Key))
                 template.properties[prop.Key] = prop.Value;
             else
                 template.castedProperties[prop.Key] = prop.Value;

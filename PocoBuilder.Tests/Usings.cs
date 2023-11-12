@@ -8,6 +8,7 @@ namespace PocoBuilder.Tests
     public interface IDescription : IArticle { string Description { get; set; } }
     public interface ICategory : IArticle { string Category { get; set; } }
 }
+
 namespace PocoBuilder.Tests.Workflows
 {
     public interface IPersistantObject
@@ -123,6 +124,65 @@ namespace PocoBuilder.Tests.Workflows
 
                 return newVersion;
             }
+        }
+        T Mutate<T>(string updatedBy, Action<ISetter<T>> mutator)
+            where T : IJournaledObject
+        {
+            var template = new DTOTemplate<T>((T)this);
+            mutator(template);
+
+            template.Set(m => m.Id, Guid.Empty);
+            var instance = Create(template, createdBy: updatedBy);
+
+            NextVersionId = instance.Id;
+            Persist?.Invoke(this);
+
+            Obsolete = true;
+            Persist = null;
+            return instance;
+        }
+    }
+
+
+    public interface IPersistant<TInterface> : IPersistantObject
+        where TInterface : IPersistant<TInterface>
+    {
+        bool Mutate(Action<ISetter<TInterface>> mutator, out TInterface updated)
+        {
+            updated = (TInterface)this;
+            if (Obsolete) return false;
+            if (this is IJournaledObject) return false;
+
+            var template = new DTOTemplate<TInterface>(updated);
+            mutator(template);
+
+            var mutation = DTOBuilder.CreateInstanceOf(template);
+            mutation.Persist = Persist;
+            mutation.Persist?.Invoke(mutation);
+
+            Obsolete = true; Persist = null;
+            updated = mutation;
+            return true;
+        }
+    }
+    public interface IJournaled<TInterface> : IJournaledObject
+        where TInterface : IJournaled<TInterface>
+    {
+        bool Mutate(string updatedBy, Action<ISetter<TInterface>> mutator, out TInterface updated)
+        {
+            updated = (TInterface)this;
+            if (Obsolete) return false;
+
+            var template = new DTOTemplate<TInterface>(updated);
+            mutator(template);
+
+            template.Set(m => m.Id, Guid.Empty);
+            updated = Create(template, updatedBy);
+
+            NextVersionId = updated.Id;
+            Persist?.Invoke(this);
+            Obsolete = true; Persist = null;
+            return true;
         }
     }
 }

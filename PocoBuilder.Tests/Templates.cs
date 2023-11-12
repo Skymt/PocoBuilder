@@ -23,7 +23,7 @@ public class Templates
         var oneHundredArticles = infiniteArticles().Take(100).ToList();
         Assert.AreEqual(1, oneHundredArticles.First().ArticleId);
         Assert.AreEqual(100, oneHundredArticles.Last().ArticleId);
-        Assert.AreEqual(100, oneHundredArticles.Count());
+        Assert.AreEqual(100, oneHundredArticles.Count);
         return;
 
         IEnumerable<ITestArticle> infiniteArticles()
@@ -38,7 +38,7 @@ public class Templates
     }
 
     [TestMethod]
-    public void Test2_TemplateCasting() 
+    public void Test2_TemplateCasting()
     {
         // Templates can also get its values from an instance
         var selectedArticle = DTOBuilder.CreateInstanceOf<ITestArticle>(init => init
@@ -72,5 +72,6 @@ public class Templates
         var castedInstance = DTOBuilder.CreateInstanceOf(template4);
         Assert.AreEqual(3, castedInstance.Count);
         Assert.AreEqual("Något annat", castedInstance.Name);
+        // TODO: Make this history survive instantiations maybe?
     }
 }

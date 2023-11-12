@@ -19,12 +19,9 @@ public class TypeDetails
         var instance = Activator.CreateInstance(type);
         var properties = type.GetProperties();
         properties.First(p => p.Name == nameof(IListProduct.Name)).SetValue(instance, "This is a name");
-        // ( BIG NOTE: You'd think reflection on init-only properties would be protected somehow.
-        // Seems no one cared though :( https://github.com/dotnet/runtime/issues/11811.)
-        
-
 
         // The generated type does its best to support immutability.
+        // https://github.com/dotnet/runtime/issues/11811
         // The proper way of assigning values to them is during activation.
         // The generated type therefore contains two constructors;
         // * one with no parameters
@@ -34,23 +31,23 @@ public class TypeDetails
 
         // Since keeping track of this constructor signature is important
         // DTOBuilder comes with some utils to make it easier.
-        // See the tests Templates and Factory for more details.
+        // See the tests Templates and Serialization for more details.
 
-        // HINT: A convenient shorthand to type safe setting of
+        // HINT: A convenient shorthand to type safe initialization of
         // immutable and read-only properties is by using the
         // instantiation helper directly in the builder:
         var sampleInstance = DTOBuilder.CreateInstanceOf<IListProduct>(init => init
             .Set(m => m.ArticleId, 1)
             .Set(m => m.Name, "The product name")
         );
-        // The rest of the tests here will focus on reflection.
+        // The rest of the tests here will focus on reflection though.
 
         var parameterizedConstructor = constructors.First(c => c.GetParameters().Length > 0);
         var parameters = parameterizedConstructor.GetParameters();
 
         // As mentioned - the constructor signature matches the declared properties
         Assert.AreEqual(properties.Length, parameters.Length);
-        for(int i = 0; i < parameters.Length; i++)
+        for (int i = 0; i < parameters.Length; i++)
             Assert.AreEqual(properties[i].Name, parameters[i].Name);
     }
 

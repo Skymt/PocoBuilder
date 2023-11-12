@@ -31,7 +31,7 @@ public static class DTOBuilder
                 throw new Exception("What kind of programmer declares an interface name without a leading 'I'?!? I refuse to accept this!");
 
             var newName = interfaceType.Namespace + '.';
-            if (interfaceType.DeclaringType != null) 
+            if (interfaceType.DeclaringType != null)
                 newName += interfaceType.DeclaringType.Name + '.';
             if (interfaceType.IsGenericType)
             {
@@ -57,9 +57,9 @@ public static class DTOBuilder
         initializer(setter);
         return CreateInstanceOf(setter);
     }
-    public static TInterface CreateInstanceOf<TInterface>(DTOTemplate<TInterface> template) => 
+    public static TInterface CreateInstanceOf<TInterface>(DTOTemplate<TInterface> template) =>
         (TInterface)Activator.CreateInstance(GetTypeFor<TInterface>(), template)!;
-    
+
     static Type ImplementClass(TypeBuilder type, Type interfaceType)
     {
         type.AddInterfaceImplementation(interfaceType);
