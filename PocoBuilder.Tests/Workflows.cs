@@ -32,7 +32,7 @@ public class Workflows
             // assigns a delegate to actually do this update.)
         });
 
-        // But it can be created, which is apropriate since it's from an import
+        // But it can be created, if supplied with a username.
         instance = IPersistantObject.Create(dataFromSomeImport, createdBy: "AutoImport");
         // This returns an actual instance, and the data will be persisted (not in this sample though)
 
@@ -64,7 +64,11 @@ public class Workflows
         Guid Id { get; init; }
         DateTimeOffset Created { get; init; }
         string CreatedBy { get; init; }
-        protected Action? Persist { get; init; }
+
+        // Protected properties are not visible outside of the interface, or the implementing class.
+        // Thus, they are not part of the constructor signature, and must contain a normal
+        // getter and setter to be usable.
+        protected Action? Persist { get; set; }
         protected bool Obsolete { get; set; }
         
         // Create a representation in permanent storage, and return an instance of the template
@@ -77,9 +81,9 @@ public class Workflows
             template.Set(m => m.Id, Guid.NewGuid())
                 .Set(m => m.CreatedBy, createdBy)
                 .Set(m => m.Created, DateTimeOffset.UtcNow);
-            // TODO: Get an apropriate delegate that performs UPDATE for T from a config source, and assign it to IPersistantObject.Persist.
 
             var instance = DTOBuilder.CreateInstanceOf(template);
+            // TODO: Get an apropriate delegate that performs UPDATE for T from a config source, and assign it to instance.Persist.
             // TODO: Get an apropriate delegate that performs INSERT for T from a config source and invoke it for instance.
             return instance;
         }
@@ -96,9 +100,9 @@ public class Workflows
 
             if (string.IsNullOrEmpty(template.Get(m => m.CreatedBy))) throw new Exception("This template is missing a creator - anonymous data is not recommended in a professional setting!");
 
+            var instance = DTOBuilder.CreateInstanceOf(template);
             // TODO: Get an apropriate delegate that performs UPDATE for T from a config source, and assign it to IPersistantObject.Persist.
-            // template.Set(m => m.Persist, action);
-            return DTOBuilder.CreateInstanceOf(template);
+            return instance;
         }
 
         // Change values and update the database.
@@ -119,6 +123,7 @@ public class Workflows
                 var mutatedInstance = DTOBuilder.CreateInstanceOf(template);
                 mutatedInstance.Persist?.Invoke();
                 instance.Obsolete = true;
+                instance.Persist = null;
 
                 return mutatedInstance;
             }
@@ -140,8 +145,8 @@ public class Workflows
 
                 var template = new DTOTemplate<T>(instance);
                 mutator(template);
-                template.Set(m => m.Id, Guid.Empty);
 
+                template.Set(m => m.Id, Guid.Empty);
                 var newVersion = Create(template, createdBy: updatedBy);
 
                 instance.NextVersionId = newVersion.Id;

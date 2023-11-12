@@ -32,7 +32,11 @@ public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
     public DTOTemplate<TInterface> Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue value)
     {
         if (property.Body is MemberExpression expression)
+        {
+            if(!properties.ContainsKey(expression.Member.Name))
+                throw new AccessViolationException($"{DTOBuilder.GetTypeFor<TInterface>().Name}.{expression.Member.Name} is protected, and cannot be set by a templater.");
             properties[expression.Member.Name] = value;
+        }
         return this;
     }
     ISetter<TInterface> ISetter<TInterface>.Set<TValue>(Expression<Func<TInterface, TValue>> property, TValue value) where TValue : default => Set(property, value);

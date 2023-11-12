@@ -97,7 +97,7 @@ public class Serialization
     }
 
     [TestMethod]
-    public void Test4_DataStructures()
+    public void Test4_MoreConverters()
     {
         // Converters are quite versitile and honors the options they are
         // bundled with.
@@ -118,20 +118,20 @@ public class Serialization
         var simpleArr = JsonSerializer.Deserialize<ISimple[]>(json, jsonOptions);
         Assert.IsNotNull(simpleArr); Assert.AreEqual(4, simpleArr[1].Index);
 
-        json = "{\"value\":{\"Index\":6}}"; // Complex generic types are a-ok
-        var complex = JsonSerializer.Deserialize<IGeneric<ISimple>>(json, jsonOptions);
-        Assert.IsNotNull(complex); Assert.AreEqual(6, complex.Value.Index);
+        json = "{\"Value\":{\"Index\":6}}"; // Complex generic types are a-ok
+        var generic = JsonSerializer.Deserialize<IGeneric<ISimple>>(json, jsonOptions);
+        Assert.IsNotNull(generic); Assert.AreEqual(6, generic.Value.Index);
 
-        json = "[{\"Value\":{\"Index\":7}}]"; // and they can come as arrays as well.
-        var complexArr = JsonSerializer.Deserialize<IGeneric<ISimple>[]>(json, jsonOptions);
-        Assert.IsNotNull(complexArr); Assert.AreEqual(7, complexArr[0].Value.Index);
+        json = "[{\"value\":{\"Index\":7}},{\"value\":{\"Index\":8}}]"; // and they can come as arrays as well.
+        var genericArr = JsonSerializer.Deserialize<IGeneric<ISimple>[]>(json, jsonOptions);
+        Assert.IsNotNull(genericArr); Assert.AreEqual(8, genericArr[1].Value.Index);
 
-        json = "{\"valuE\":[{\"index\":8},{\"index\":9},{\"index\":10}]}";
         // A separate converter registration is required if the generic
         // type is a collection type though! Calling GetTypeFor<ISimple[]>()
         // would result in an exception but GetTypeFor<IGeneric<ISimple[]>>()
         // is fine.
-        var complexOfArr = JsonSerializer.Deserialize<IGeneric<ISimple[]>>(json, jsonOptions);
-        Assert.IsNotNull(complexOfArr); Assert.AreEqual(9, complexOfArr.Value[1].Index);
+        json = "{\"valuE\":[{\"index\":9},{\"index\":10},{\"index\":11}]}";
+        var genericOfArr = JsonSerializer.Deserialize<IGeneric<ISimple[]>>(json, jsonOptions);
+        Assert.IsNotNull(genericOfArr); Assert.AreEqual(10, genericOfArr.Value[1].Index);
     }
 }

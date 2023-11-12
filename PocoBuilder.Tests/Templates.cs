@@ -22,11 +22,12 @@ public class Templates
 
         // Just like factories, templates can be re-used when
         // creating instances.
-        var oneHundredArticles = infiniteArticles().Take(100);
+        var oneHundredArticles = infiniteArticles().Take(100).ToList();
         Assert.AreEqual(1, oneHundredArticles.First().ArticleId);
         Assert.AreEqual(100, oneHundredArticles.Last().ArticleId);
         Assert.AreEqual(100, oneHundredArticles.Count());
         return;
+
         IEnumerable<ITestArticle> infiniteArticles()
         {
             var currentId = template.Get(m => m.ArticleId);
@@ -41,15 +42,15 @@ public class Templates
     [TestMethod]
     public void Test2_TemplateCasting() 
     {
-        var template = new DTOTemplate<ITestArticle>();
-        template.Set(m => m.ArticleId, 1);
-        template.Set(m => m.Name, "Produktnamn");
-        template.Set(m => m.Price, 95);
+        var template1 = new DTOTemplate<ITestArticle>();
+        template1.Set(m => m.ArticleId, 1);
+        template1.Set(m => m.Name, "Produktnamn");
+        template1.Set(m => m.Price, 95);
 
-        var cartItem = template.Cast<ITestCartItem>();
-        cartItem.Set(m => m.Count, 3);
+        var template2 = template1.Cast<ITestCartItem>();
+        template2.Set(m => m.Count, 3);
 
-        var instance = DTOBuilder.CreateInstanceOf(cartItem);
+        var instance = DTOBuilder.CreateInstanceOf(template2);
         Assert.IsInstanceOfType<ITestCartItem>(instance);
         Assert.AreEqual("Produktnamn", instance.Name);
         Assert.AreEqual(95m, instance.Price);
