@@ -19,11 +19,9 @@ public static class DTOBuilder
 #pragma warning restore SYSLIB0015 // setters marked with "init" keyword ARE ***NOT SAFE FROM REFLECTION***!
     }
 
-
     public static Type GetTypeFor<TInterface>()
     {
-        var classType = typeCache.GetOrAdd(typeof(TInterface), typeFactory);
-        return classType;
+        return typeCache.GetOrAdd(typeof(TInterface), typeFactory);
 
         static Type typeFactory(Type interfaceType)
         {

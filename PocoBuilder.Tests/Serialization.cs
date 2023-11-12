@@ -105,6 +105,8 @@ public class Serialization
     public void Test4_Converters() 
     {
         var jsonOptions = new JsonSerializerOptions();
+        // DTOConverters handles the transformation between
+        // the interface type and the generated class type.
         jsonOptions.Converters.Add(new DTOConverter<IListProduct>());
 
         var listProduct = DTOBuilder.CreateInstanceOf<IListProduct>(init => init
@@ -112,9 +114,13 @@ public class Serialization
             .Set(i => i.Name, "Fancy Product")
             .Set(i => i.Price, 99.95m)
         );
+
+        // Now you can serialize without <object>
         var json = JsonSerializer.Serialize(listProduct, jsonOptions);
         Assert.IsFalse(string.IsNullOrWhiteSpace(json));
 
+        // And you can use your desired target interface-type as
+        // generic argument when deserializing.
         var instance = JsonSerializer.Deserialize<IListProduct>(json, jsonOptions);
         Assert.IsNotNull(instance);
         Assert.IsInstanceOfType<IListProduct>(instance);
@@ -123,29 +129,37 @@ public class Serialization
     [TestMethod]
     public void Test5_ComplexConverters()
     {
+        // Converters are quite versitile and honors the options they are
+        // bundled with.
         var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        // Registering converters for collection types is only relevant
+        // when they are generic arguments. Collections are supported
+        // anyway.
         jsonOptions.Converters.Add(new DTOConverter<ISimple>());
         jsonOptions.Converters.Add(new DTOConverter<IGeneric<ISimple>>());
         jsonOptions.Converters.Add(new DTOConverter<IGeneric<ISimple[]>>());
 
-        string json = "{\"index\":2}";
+        string json = "{\"index\":2}"; // Case insensitivity is handled
         var simple = JsonSerializer.Deserialize<ISimple>(json, jsonOptions);
-        Assert.IsNotNull(simple);
+        Assert.IsNotNull(simple); Assert.AreEqual(2, simple.Index);
 
-        json = "[{\"INDEX\":3},{\"index\":4},{\"InDeX\":5}]";
+        json = "[{\"INDEX\":3},{\"index\":4},{\"InDeX\":5}]"; // Collections are supported.
         var simpleArr = JsonSerializer.Deserialize<ISimple[]>(json, jsonOptions);
-        Assert.IsNotNull(simpleArr);
+        Assert.IsNotNull(simpleArr); Assert.AreEqual(4, simpleArr[1].Index);
 
-        json = "{\"value\":{\"Index\":6}}";
+        json = "{\"value\":{\"Index\":6}}"; // Complex generic types are a-ok
         var complex = JsonSerializer.Deserialize<IGeneric<ISimple>>(json, jsonOptions);
-        Assert.IsNotNull(complex);
+        Assert.IsNotNull(complex); Assert.AreEqual(6, complex.Value.Index);
 
-        json = "[{\"value\":{\"Index\":7}}]";
+        json = "[{\"Value\":{\"Index\":7}}]"; // and they can come as arrays as well.
         var complexArr = JsonSerializer.Deserialize<IGeneric<ISimple>[]>(json, jsonOptions);
-        Assert.IsNotNull(complexArr);
+        Assert.IsNotNull(complexArr); Assert.AreEqual(7, complexArr[0].Value.Index);
 
-        json = "{\"value\":[{\"index\":8},{\"index\":9},{\"index\":10}]}";
+        json = "{\"valuE\":[{\"index\":8},{\"index\":9},{\"index\":10}]}";
+        // A separate converter registration is required if the generic
+        // type is a collection type though! <ISimple[]> is very different from <ISimple>.
         var complexOfArr = JsonSerializer.Deserialize<IGeneric<ISimple[]>>(json, jsonOptions);
-        Assert.IsNotNull(complexOfArr);
+        Assert.IsNotNull(complexOfArr); Assert.AreEqual(9, complexOfArr.Value[1].Index);
     }
 }

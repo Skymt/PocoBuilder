@@ -103,7 +103,7 @@ public class TypeDetails
         var instance = Activator.CreateInstance(type, values) as IDetailProduct;
         Assert.IsNotNull(instance);
         Assert.AreEqual(2, instance.ArticleId);
-        Assert.AreEqual("FancyProduct", instance.Name);
+        Assert.AreEqual("Fancy Product", instance.Name);
         Assert.IsNotNull(instance.Description);
         Assert.IsNotNull(instance.CustomProperty);
     }
