@@ -40,12 +40,19 @@ public class Templates
     [TestMethod]
     public void Test2_TemplateCasting() 
     {
-        var template1 = new DTOTemplate<ITestArticle>();
-        template1.Set(m => m.ArticleId, 1);
-        template1.Set(m => m.Name, "Produktnamn");
-        template1.Set(m => m.Price, 95);
+        // Templates can also get its values from an instance
+        var selectedArticle = DTOBuilder.CreateInstanceOf<ITestArticle>(init => init
+            .Set(m => m.ArticleId, 1)
+            .Set(m => m.Name, "Produktnamn")
+            .Set(m => m.Price, 95)
+        );
+        var template1 = new DTOTemplate<ITestArticle>(selectedArticle);
 
+        // This template can then be cast to any other template
         var template2 = template1.Cast<ITestCartItem>();
+
+        // Shared properties are cloned,
+        // and the new properties can be set.
         template2.Set(m => m.Count, 3);
 
         var instance = DTOBuilder.CreateInstanceOf(template2);

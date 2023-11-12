@@ -24,7 +24,7 @@ public class TypeDetails
         
 
 
-        // The generated type supports immutability.
+        // The generated type does its best to support immutability.
         // The proper way of assigning values to them is during activation.
         // The generated type therefore contains two constructors;
         // * one with no parameters
