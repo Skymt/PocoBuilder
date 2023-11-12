@@ -125,22 +125,6 @@ namespace PocoBuilder.Tests.Workflows
                 return newVersion;
             }
         }
-        T Mutate<T>(string updatedBy, Action<ISetter<T>> mutator)
-            where T : IJournaledObject
-        {
-            var template = new DTOTemplate<T>((T)this);
-            mutator(template);
-
-            template.Set(m => m.Id, Guid.Empty);
-            var instance = Create(template, createdBy: updatedBy);
-
-            NextVersionId = instance.Id;
-            Persist?.Invoke(this);
-
-            Obsolete = true;
-            Persist = null;
-            return instance;
-        }
     }
 
 

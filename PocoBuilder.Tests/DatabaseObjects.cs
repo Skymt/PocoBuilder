@@ -17,7 +17,7 @@ public class DatabaseObjects
     {
         IDbArticle article = DTOBuilder.CreateInstanceOf<IDbArticle>(init => init
             .Set(a => a.Id, Guid.NewGuid())
-            .Set(a => a.Created, DateTime.Now.AddMinutes(-15448453))
+            .Set(a => a.Created, DateTimeOffset.Now.AddMinutes(-15448453))
             .Set(a => a.CreatedBy, "Fredrik")
             .Set(a => a.ArticleId, 1)
             .Set(a => a.Name, "Very nice article"));
@@ -41,7 +41,7 @@ public class DatabaseObjects
         // The cartItem reference is now obsolete, and may not be updated again.
         Assert.ThrowsException<Exception>(() =>
         {
-            var updateFromObsolete = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, 1));
+            cartItem = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, 1));
         });
 
         // So it can be re-assigned
