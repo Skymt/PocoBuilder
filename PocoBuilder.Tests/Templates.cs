@@ -53,5 +53,17 @@ public class Templates
         Assert.AreEqual("Produktnamn", instance.Name);
         Assert.AreEqual(95m, instance.Price);
         Assert.AreEqual(3, instance.Count);
+
+        // Templates preserve values through casts.
+        var template3 = template2.Cast<ITestArticle>();
+        template3.Set(m => m.Name, "Något annat");
+
+        // template3 has no property Count
+        var template4 = template3.Cast<ITestCartItem>();
+
+        // But when casted back to ITestCartItem, the value remains!
+        var castedInstance = DTOBuilder.CreateInstanceOf(template4);
+        Assert.AreEqual(3, castedInstance.Count);
+        Assert.AreEqual("Något annat", castedInstance.Name);
     }
 }

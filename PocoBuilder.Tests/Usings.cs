@@ -19,7 +19,7 @@ namespace PocoBuilder.Tests.Workflows
         // Protected properties are not visible outside of the interface, or the implementing class.
         // Thus, they are not part of the constructor signature, and must contain a normal
         // getter and setter to be usable.
-        protected Action? Persist { get; set; }
+        protected Action<IPersistantObject>? Persist { get; set; }
         protected bool Obsolete { get; set; }
 
         static DTOTemplate<TTarget> Cast<TTarget, TSource>(TSource instance)
@@ -75,24 +75,22 @@ namespace PocoBuilder.Tests.Workflows
 
         // Change values and update the database.
         // Returns a new object reference with the changes made.
-        static T Update<T>(T instance, Action<ISetter<T>> mutator, bool throwIfObsolete = false)
+        static T Update<T>(T instance, Action<ISetter<T>> mutator)
                 where T : IPersistantObject
         {
+            if (instance is IJournaledObject) throw new Exception($"Please use IJournaledObject.Update() to mutate {typeof(T).FullName}");
             lock (instance)
             {
-                if (instance is IJournaledObject) throw new Exception($"Please use IJournaledObject.Update() to mutate {typeof(T).FullName}");
-                if (instance.Obsolete && throwIfObsolete) throw new Exception("This object reference has already mutated, and is no longer valid.");
-                else if (instance.Obsolete) return instance;
+                if (instance.Obsolete) throw new Exception("This object reference has already mutated, and is no longer valid.");
 
                 var template = new DTOTemplate<T>(instance);
-
                 mutator(template);
 
                 var mutation = DTOBuilder.CreateInstanceOf(template);
-                mutation.Persist = instance.Persist;
-                mutation.Persist?.Invoke();
-
+                instance.Persist?.Invoke(mutation);
                 instance.Obsolete = true;
+
+                mutation.Persist = instance.Persist;
                 instance.Persist = null;
                 return mutation;
             }
@@ -119,8 +117,8 @@ namespace PocoBuilder.Tests.Workflows
                 var newVersion = Create(template, createdBy: updatedBy);
 
                 instance.NextVersionId = newVersion.Id;
+                instance.Persist?.Invoke(instance);
                 instance.Obsolete = true;
-                instance.Persist?.Invoke();
                 instance.Persist = null;
 
                 return newVersion;

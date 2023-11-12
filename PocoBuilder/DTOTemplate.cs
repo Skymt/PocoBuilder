@@ -8,6 +8,7 @@ public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
 {
     readonly IServiceProvider? serviceProvider = null;
     readonly Dictionary<string, object?> properties;
+    readonly Dictionary<string, object?> castedProperties = new();
 
     public DTOTemplate() => properties = DTOBuilder.GetTypeFor<TInterface>().GetProperties().ToDictionary(p => p.Name, p => (object?)null);
     public DTOTemplate(IServiceProvider serviceProvider)
@@ -56,11 +57,23 @@ public readonly struct DTOTemplate<TInterface> : ISetter<TInterface>
 
     public DTOTemplate<TCast> Cast<TCast>()
     {
-        var template = serviceProvider == null
-            ? new DTOTemplate<TCast>()
-            : new DTOTemplate<TCast>(serviceProvider);
-        foreach (var propertyName in template.properties!.Keys.Where(properties.ContainsKey))
-            template.properties[propertyName] = properties[propertyName];
+        DTOTemplate<TCast> template = serviceProvider != null ? new(serviceProvider) : new();
+        foreach(var prop in castedProperties)
+        {
+            if (template.properties.ContainsKey(prop.Key))
+                template.properties[prop.Key] = prop.Value;
+            else
+                template.castedProperties[prop.Key] = prop.Value;
+        }
+
+        foreach(var prop in properties)
+        {
+            if(template.properties.ContainsKey(prop.Key))
+                template.properties[prop.Key] = prop.Value;
+            else
+                template.castedProperties[prop.Key] = prop.Value;
+        }
+
         return template;
     }
     public static implicit operator object?[]?(DTOTemplate<TInterface> template) => template.properties.Values.ToArray();

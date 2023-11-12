@@ -30,19 +30,23 @@ public class DatabaseObjects
         var cartItem = IPersistantObject.Create(cartItemTemplate, "CartService");
         Assert.IsNotNull(cartItem);
 
+        // Note: This will NOT trigger a change in persistant storage
+        cartItem.Count = 15;
+        // so make sure your setters are init only!
+
         // Trigger a change in persistant storage.
-        var cartItemUpdate = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, cartItem.Count + 3));
+        var cartItemUpdate = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, 4));
         Assert.IsNotNull(cartItemUpdate);
 
         // The cartItem reference is now obsolete, and may not be updated again.
         Assert.ThrowsException<Exception>(() =>
         {
-            var updateFromObsolete = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, 1), throwIfObsolete: true);
+            var updateFromObsolete = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, 1));
         });
 
         // So it can be re-assigned
         cartItem = cartItemUpdate;
-        cartItemUpdate = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, 1), throwIfObsolete: true);
+        cartItemUpdate = IPersistantObject.Update(cartItem, mutator => mutator.Set(m => m.Count, 1));
         Assert.IsNotNull(cartItemUpdate);
     }
 
@@ -79,8 +83,7 @@ public class DatabaseObjects
         Assert.ThrowsException<Exception>(() =>
         {
             var updatedInstance = IPersistantObject.Update(instance, 
-                mutator => mutator.Set(m => m.Name, "A brand new name"), 
-                throwIfObsolete: true);
+                mutator => mutator.Set(m => m.Name, "A brand new name"));
         });
 
         var updatedInstance = IJournaledObject.Update(instance, 
